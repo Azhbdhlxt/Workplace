@@ -1,0 +1,43 @@
+C51 COMPILER V9.54   MAIN                                                                  04/01/2023 16:00:34 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Program Files (x86)\keil51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PR
+                    -INT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <REGX51.H>
+   2          #include "LCD1602.h"
+   3          #include "DElay.h"
+   4          void main()
+   5          { 
+   6   1        //unsigned char code Animation[]={0x00,0x44,0x22,0x11,0x22,0x44,0x38,0x00,0x38,0x44,0x22,0x11,0x11,0x22,0
+             -x44};
+   7   1        
+   8   1        int i=0;
+   9   1        LCD_Init();
+  10   1        LCD_ShowString(1,1, "ÉñÆæµÄ×Ö·û");//
+  11   1        
+  12   1        
+  13   1        LCD_ShowString(8,16,'?');
+  14   1        
+  15   1        
+  16   1        
+  17   1      
+  18   1      } 
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     34    ----
+   CONSTANT SIZE    =     11    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

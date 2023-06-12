@@ -1,0 +1,4 @@
+".\Objects\STARTUP.obj",
+".\Objects\line_light.obj" 
+TO ".\Objects\Line_light" 
+PRINT(".\Listings\Line_light.m51")

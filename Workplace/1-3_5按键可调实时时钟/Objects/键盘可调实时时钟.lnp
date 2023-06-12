@@ -1,0 +1,6 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\Delay.obj",
+".\Objects\LCD1602.obj" 
+TO ".\Objects\键盘可调实时时钟" 
+PRINT(".\Listings\键盘可调实时时钟.m51")
