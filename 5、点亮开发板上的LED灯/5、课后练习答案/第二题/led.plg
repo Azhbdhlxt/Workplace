@@ -1,0 +1,15 @@
+<html>
+<body>
+<pre>
+<h1>礦ision Build Log</h1>
+<h2>Project:</h2>
+C:\Users\Administrator\Desktop\9、视频教程\课件\5、课程文件\5、课后练习答案\第二题\led.uvproj
+Project File Date:  02/11/2018
+
+<h2>Output:</h2>
+Build target 'Target 1'
+compiling led.c...
+linking...
+Program Size: data=9.0 xdata=0 code=18
+creating hex file from "led"...
+"led" - 0 Error(s), 0 Warning(s).

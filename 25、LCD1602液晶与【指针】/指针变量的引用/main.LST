@@ -1,0 +1,98 @@
+C51 COMPILER V8.08   MAIN                                                                  02/19/2016 19:55:39 PAGE 1   
+
+
+C51 COMPILER V8.08, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /**
+   2          LCD1602显示 12345
+   3          **/
+   4          #include <reg52.h>
+   5          
+   6          typedef unsigned char uchar;
+   7          typedef unsigned int uint;
+   8          
+   9          sbit RS = P3^5;
+  10          sbit RW = P3^6;
+  11          sbit EN = P3^4;
+  12          //判断液晶忙，如果忙则等待
+  13          void Read_Busy()
+  14          {
+  15   1              uchar busy;
+  16   1              P0 = 0xff;
+  17   1              RS = 0;
+  18   1              RW = 1;
+  19   1              do
+  20   1              {
+  21   2                      EN = 1;
+  22   2                      busy = P0;
+  23   2                      EN = 0;
+  24   2              }while(busy & 0x80);
+  25   1      }
+  26          //写LCD1602命令一个字节
+  27          void Write_Cmd(uchar cmd)
+  28          {
+  29   1              Read_Busy();//判断忙
+  30   1              RS = 0;
+  31   1              RW = 0;
+  32   1              P0 = cmd;
+  33   1              EN = 1;
+  34   1              EN = 0;
+  35   1      }
+  36          //写一个字节数据
+  37          void Write_Dat(uchar dat)
+  38          {
+  39   1              Read_Busy();
+  40   1              RS = 1;
+  41   1              RW = 0;
+  42   1              P0 = dat;
+  43   1              EN = 1;
+  44   1              EN = 0;
+  45   1      }
+  46          void main()
+  47          {
+  48   1              uchar a, b;
+  49   1              uchar *pa, *pb, *pi;
+  50   1              Write_Cmd(0x38);//设置16*2显示
+  51   1              Write_Cmd(0x0f);//开显示 显示光标，光标闪烁
+  52   1              Write_Cmd(0x01);//清屏
+  53   1      
+  54   1              Write_Cmd(0x06);//地址指针移位命令
+  55   1              Write_Cmd(0x80 | 0x06);//显示地址
+C51 COMPILER V8.08   MAIN                                                                  02/19/2016 19:55:39 PAGE 2   
+
+  56   1              a = 5; b = 9;//赋初值
+  57   1              pa = &a;//使pa指向变量a
+  58   1              pb = &b;//使pb指向变量b
+  59   1                      
+  60   1              Write_Dat(*pa + '0');//输出pa所指向变量的值
+  61   1              Write_Dat(*pb + '0');//输出pb所指向变量的值
+  62   1      
+  63   1              Write_Cmd(0xc0 | 0x06);//显示地址
+  64   1      
+  65   1              /*a和b变量的值交换*/
+  66   1              pi = pa;//pa地址赋值给pi
+  67   1              pa = pb;//pb地址赋值给pa
+  68   1              pb = pi;//pi地址赋值给pb
+  69   1      
+  70   1              Write_Dat(*pa + '0');//输出pa所指向变量的值
+  71   1              Write_Dat(*pb + '0');//输出pb所指向变量的值
+  72   1              while(1);
+  73   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    166    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      11
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

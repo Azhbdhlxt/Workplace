@@ -1,0 +1,98 @@
+C51 COMPILER V8.08   KEYSCAN                                                               09/05/2015 21:41:47 PAGE 1   
+
+
+C51 COMPILER V8.08, COMPILATION OF MODULE KEYSCAN
+OBJECT MODULE PLACED IN KeyScan.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE KeyScan.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include "qxmcs51_config.h"
+   2          #include "delay.h"
+   3          #include "KeyScan.h"
+   4          
+   5          BOOL KeyScan_OK, KeyPro_OK, TorR_Mod; 
+   6          
+   7          INT8U KeyScan() //带返回值的子函数
+   8          {
+   9   1              INT8U cord_l,cord_h;//声明列线和行线的值的储存变量
+  10   1              P3 = 0x0f;//0000 1111
+  11   1              if( (P3 & 0x0f) != 0x0f)//判断是否有按键按下
+  12   1              {
+  13   2                      Delay_Ms(5);//软件消抖
+  14   2                      if( (P3 & 0x0f) != 0x0f)//判断是否有按键按下
+  15   2                      {
+  16   3                                cord_l = P3 & 0x0f;// 储存列线值
+  17   3                                P3 = cord_l | 0xf0;
+  18   3                                cord_h = P3 & 0xf0;// 储存行线值
+  19   3                                while((P3 & 0xf0) != 0xf0 );//松手检测
+  20   3                                KeyScan_OK = 1;
+  21   3                                return (cord_l + cord_h);//返回键值码
+  22   3                      }       
+  23   2              }               
+  24   1      }
+  25          
+  26          INT8U KeyPro()
+  27          {
+  28   1              INT8U Key_Value;                
+  29   1              Key_Value = KeyScan();
+  30   1              if (KeyScan_OK)
+  31   1              {
+  32   2                      KeyScan_OK = 0;         
+  33   2                      switch(Key_Value)
+  34   2                      {
+  35   3                              
+  36   3                              //第一行键值码
+  37   3                              case 0xee: Key_Value = 0x00;            break;
+  38   3                              case 0xde: Key_Value = 0x04;            break;
+  39   3                              case 0xbe: Key_Value = 0x08;            break;
+  40   3                              case 0x7e: Key_Value = 0x0b;            break;
+  41   3                              
+  42   3                              //第二行键值码
+  43   3                              case 0xed: Key_Value = 0x10;            break;
+  44   3                              case 0xdd: Key_Value = 0x14;            break;
+  45   3                              case 0xbd: Key_Value = 0x18;            break;
+  46   3                              case 0x7d: Key_Value = 0x1b;            break;
+  47   3              
+  48   3                              //第三行键值码
+  49   3                              case 0xeb: Key_Value = 0x09;            break;
+  50   3                              case 0xdb: Key_Value = 0x0A;            break;
+  51   3                              case 0xbb: Key_Value = 0x0b;            break;
+  52   3                              case 0x7b: Key_Value = 0x0C;            break;
+  53   3              
+  54   3                              //第四行键值码
+  55   3                              case 0xe7: Key_Value = 0x20;            break;
+C51 COMPILER V8.08   KEYSCAN                                                               09/05/2015 21:41:47 PAGE 2   
+
+  56   3                              case 0xd7: Key_Value = 0x24;            break;
+  57   3                              case 0xb7: Key_Value = 0x28;            break;
+  58   3                              case 0x77: Key_Value = 0x2b;            break;
+  59   3                                                              
+  60   3                              //独立按键
+  61   3                              case 0xfe: TorR_Mod  = 0;                       break;
+  62   3                              case 0xfd: TorR_Mod  = 1;                       break;
+  63   3                              case 0xfb: Key_Value = 0x13;            break;
+  64   3                              case 0xf7: Key_Value = 0x30;            break;
+  65   3      
+  66   3                      }
+  67   2                      KeyPro_OK = 1;  
+  68   2                      BEEP = 0;
+  69   2                      Delay_Ms(100);
+  70   2                      BEEP = 1;
+  71   2                      return (Key_Value);
+  72   2              }       
+  73   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    245    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

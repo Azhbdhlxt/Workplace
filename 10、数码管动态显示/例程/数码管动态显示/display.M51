@@ -1,0 +1,145 @@
+BL51 BANKED LINKER/LOCATER V6.22                                                        02/23/2018  16:12:39  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
+C:\KEIL\C51\BIN\BL51.EXE display.obj TO display RAMSIZE (256)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  display.obj (DISPLAY)
+  C:\KEIL\C51\LIB\C51S.LIB (?C_STARTUP)
+
+
+LINK MAP OF MODULE:  display (DISPLAY)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            IDATA   0008H     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+            CODE    0003H     005BH     UNIT         ?PR?_DISPLAY?DISPLAY
+            CODE    005EH     0027H     UNIT         ?PR?_DELAY?DISPLAY
+            CODE    0085H     000CH     UNIT         ?C_C51STARTUP
+            CODE    0091H     000AH     UNIT         ?CO?DISPLAY
+            CODE    009BH     0007H     UNIT         ?PR?MAIN?DISPLAY
+
+
+
+OVERLAY MAP OF MODULE:   display (DISPLAY)
+
+
+SEGMENT
+  +--> CALLED SEGMENT
+---------------------
+?C_C51STARTUP
+  +--> ?PR?MAIN?DISPLAY
+
+?PR?MAIN?DISPLAY
+  +--> ?PR?_DISPLAY?DISPLAY
+
+?PR?_DISPLAY?DISPLAY
+  +--> ?CO?DISPLAY
+  +--> ?PR?_DELAY?DISPLAY
+
+
+
+SYMBOL TABLE OF MODULE:  display (DISPLAY)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        DISPLAY
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0080H         PUBLIC        P0
+BL51 BANKED LINKER/LOCATER V6.22                                                      02/23/2018  16:12:39  PAGE 2
+
+
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+  D:00B0H         PUBLIC        P3
+  C:0091H         PUBLIC        tabel
+  D:00A8H         PUBLIC        IE
+  C:0067H         PUBLIC        _delay
+  B:00A0H.6       PUBLIC        DU
+  D:00B8H         PUBLIC        IP
+  B:00A0H.7       PUBLIC        WE
+  C:009BH         PUBLIC        main
+  D:0098H         PUBLIC        SCON
+  D:0088H         PUBLIC        TCON
+  D:00C8H         PUBLIC        T2CON
+  C:0003H         PUBLIC        _display
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          L?0014
+  -------         ENDPROC       L?0014
+  -------         PROC          _DELAY
+  D:0006H         SYMBOL        z
+  -------         DO            
+  D:0006H         SYMBOL        x
+  D:0004H         SYMBOL        y
+  -------         ENDDO         
+  C:0067H         LINE#         31
+  C:0067H         LINE#         32
+  C:0067H         LINE#         34
+  C:0070H         LINE#         35
+  C:0084H         LINE#         36
+  -------         ENDPROC       _DELAY
+  -------         PROC          _DISPLAY
+  D:0007H         SYMBOL        i
+  -------         DO            
+  D:0006H         SYMBOL        bai
+  D:0003H         SYMBOL        shi
+  D:0002H         SYMBOL        ge
+  -------         ENDDO         
+  C:0003H         LINE#         44
+  C:0003H         LINE#         45
+  C:0003H         LINE#         47
+  C:0009H         LINE#         48
+  C:0015H         LINE#         49
+  C:001CH         LINE#         52
+  C:001FH         LINE#         53
+  C:0021H         LINE#         54
+  C:0024H         LINE#         55
+  C:0026H         LINE#         57
+  C:0028H         LINE#         58
+  C:002EH         LINE#         59
+  C:002EH         LINE#         60
+  C:0031H         LINE#         63
+  C:0034H         LINE#         64
+  C:0036H         LINE#         65
+  C:0039H         LINE#         66
+  C:003BH         LINE#         68
+  C:003DH         LINE#         69
+  C:0040H         LINE#         70
+  C:0040H         LINE#         71
+BL51 BANKED LINKER/LOCATER V6.22                                                      02/23/2018  16:12:39  PAGE 3
+
+
+  C:0043H         LINE#         74
+  C:0046H         LINE#         75
+  C:0048H         LINE#         76
+  C:004BH         LINE#         77
+  C:004DH         LINE#         79
+  C:004FH         LINE#         80
+  C:0055H         LINE#         81
+  C:0057H         LINE#         82
+  -------         ENDPROC       _DISPLAY
+  -------         PROC          MAIN
+  C:009BH         LINE#         85
+  C:009BH         LINE#         86
+  C:009BH         LINE#         87
+  C:009BH         LINE#         88
+  C:009BH         LINE#         89
+  C:00A0H         LINE#         90
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        DISPLAY
+
+Program Size: data=9.0 xdata=0 code=162
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

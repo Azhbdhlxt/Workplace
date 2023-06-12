@@ -1,0 +1,201 @@
+C51 COMPILER V8.08   MAIN                                                                  08/31/2015 16:11:04 PAGE 1   
+
+
+C51 COMPILER V8.08, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include <reg52.h>
+   2          #include <intrins.h>
+   3          #define MAIN_Fosc               11059200UL      //宏定义主时钟HZ
+   4          /*====================================
+   5           自定义类型名
+   6          ====================================*/
+   7          typedef unsigned char INT8U;
+   8          typedef unsigned char uchar;
+   9          
+  10          typedef unsigned int INT16U;
+  11          typedef unsigned int uint;
+  12          
+  13          /*====================================
+  14           硬件接口位声明
+  15          ====================================*/
+  16          sbit DS  = P2^2;   //DS18B20单总线
+  17          sbit DU  = P2^6;   //数码管段选
+  18          sbit WE  = P2^7;   //数码管位选
+  19          /*====================================
+  20          共阴极数码管段选码
+  21          ====================================*/
+  22          uchar code table[]={ 
+  23          //0             1        2     3     4     5     6     7     8
+  24          0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F,
+  25          //9     A     B    C     D         E     F              -        .        关显示
+  26          0x6F, 0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71, 0x40, 0x80, 0x00
+  27                             };
+  28          
+  29          /*====================================
+  30          数码管位选码
+  31          ====================================*/
+  32                                            //第1位       2位       3位    4位   5位      6位       7位   8位
+  33          uchar code T_COM[] = {0xfe, 0xfd, 0xfb, 0xf7, 0xef, 0xdf, 0xbf, 0x7f};//数码管位码
+  34          
+  35          /*====================================
+  36          函数：void Delay_Ms(INT16U ms)
+  37          参数：ms，毫秒延时形参
+  38          描述：12T 51单片机自适应主时钟毫秒级延时函数
+  39          ====================================*/
+  40          void Delay_Ms(INT16U ms)
+  41          {
+  42   1           INT16U i;
+  43   1               do{
+  44   2                    i = MAIN_Fosc / 96000; 
+  45   2                        while(--i);   //96T per loop
+  46   2           }while(--ms);
+  47   1      }
+  48          /*us延时函数，执行一次US--所需6.5us进入一次函数需要11.95us*/
+  49          void Delay_us(uchar us)
+  50          {
+  51   1              while(us--);    
+  52   1      }
+  53          /*====================================
+  54          函数：void Display(INT16U Value)
+  55          参数：Value,显示值 取值0-65535
+C51 COMPILER V8.08   MAIN                                                                  08/31/2015 16:11:04 PAGE 2   
+
+  56          描述：共阴极数码管显示函数可显示一个字节的数
+  57          ====================================*/
+  58          void Display(INT16U Value)                      //注意由于需要显示的数大于一个字节所有形参需为int型
+  59          {       
+  60   1      //------------------------------
+  61   1              DU = 0;                                                 //关闭段选
+  62   1              P0 = table[Value/100];          //数码管显示百位
+  63   1              DU = 1;                                                 //打开段选
+  64   1              DU = 0;                                                 //关闭段选
+  65   1      
+  66   1              WE = 0;                                         //关闭位选
+  67   1              P0 = T_COM[0];                             //第一位数码管
+  68   1              WE = 1;                                         //打开位选
+  69   1              WE = 0;                                         //关闭位选
+  70   1              Delay_Ms(3);
+  71   1      //-------------------------------
+  72   1              DU = 0;
+  73   1              P0 = table[Value%100/10]|0x80; //显示十位
+  74   1              DU = 1;
+  75   1              DU = 0;
+  76   1      
+  77   1              WE = 0;
+  78   1              P0 = T_COM[1];                    //第二位数码管
+  79   1              WE = 1;
+  80   1              WE = 0;
+  81   1              Delay_Ms(3);
+  82   1      //-------------------------------
+  83   1              DU = 0;
+  84   1              P0 = table[Value%10];           //显示个位
+  85   1              DU = 1;
+  86   1              DU = 0;
+  87   1      
+  88   1              WE = 0;
+  89   1              P0 = T_COM[2];                          //第三位数码管
+  90   1              WE = 1;
+  91   1              WE = 0;
+  92   1              Delay_Ms(3);
+  93   1      }
+  94          /*单总线初始化时序*/
+  95          bit ds_init()
+  96          {
+  97   1              bit i;
+  98   1              DS = 1;
+  99   1              _nop_();
+ 100   1              DS = 0;
+ 101   1              Delay_us(75); //拉低总线499.45us 挂接在总线上的18B20将会全部被复位
+ 102   1              DS = 1; //释放总线
+ 103   1              Delay_us(4); //延时37.95us 等待18B20发回存在信号
+ 104   1              i = DS;
+ 105   1              Delay_us(20); //141.95us
+ 106   1              DS = 1;
+ 107   1              _nop_();
+ 108   1              return (i);
+ 109   1      }
+ 110          /*写一个字节*/
+ 111          void write_byte(uchar dat)
+ 112          {
+ 113   1              uchar i;
+ 114   1              for(i=0;i<8;i++)
+ 115   1              {
+ 116   2                      DS = 0;
+ 117   2                      _nop_();//产生些时序
+C51 COMPILER V8.08   MAIN                                                                  08/31/2015 16:11:04 PAGE 3   
+
+ 118   2                      DS = dat & 0x01;
+ 119   2                      Delay_us(10);//76.95us
+ 120   2                      DS = 1; //释放总线准备下一次数据写入
+ 121   2                      _nop_();
+ 122   2                      dat >>= 1;
+ 123   2              }
+ 124   1      }
+ 125          
+ 126          uchar read_byte()
+ 127          {
+ 128   1              uchar i, j, dat;
+ 129   1              for(i=0;i<8;i++)
+ 130   1              {
+ 131   2                      DS = 0;
+ 132   2                      _nop_();//产生读时序
+ 133   2                      DS = 1;
+ 134   2                      _nop_();//释放总线
+ 135   2                      j = DS;
+ 136   2                      Delay_us(10);//76.95us
+ 137   2                      DS = 1;
+ 138   2                      _nop_();
+ 139   2                      dat = (j<<7)|(dat>>1);  
+ 140   2              }
+ 141   1              return (dat);
+ 142   1      }
+ 143          void main()
+ 144          {
+ 145   1              uint i;
+ 146   1              uchar L, M;
+ 147   1      /*      ds_init();//初始化DS18B20
+ 148   1              write_byte(0xcc);//发送跳跃ROM指令
+ 149   1              write_byte(0x4e);//写暂存器指令
+ 150   1              write_byte(0x7f);
+ 151   1              write_byte(0xf7);
+ 152   1              write_byte(0x1f);//配置工作在9位模式下
+ 153   1              ds_init();//初始化DS18B20
+ 154   1              write_byte(0xcc);//发送跳跃ROM指令 
+ 155   1              write_byte(0x48);*/
+ 156   1              while(1)
+ 157   1              {
+ 158   2                      ds_init();//初始化DS18B20
+ 159   2                      write_byte(0xcc);//发送跳跃ROM指令
+ 160   2                      write_byte(0x44);//发送温度转换指令
+ 161   2                      ds_init();//初始化DS18B20
+ 162   2                      write_byte(0xcc);//发送跳跃ROM指令
+ 163   2                      write_byte(0xbe);//读取DS18B20暂存器值
+ 164   2                      L = read_byte();
+ 165   2                      M = read_byte();
+ 166   2                      i = M;
+ 167   2                      i <<= 8;
+ 168   2                      i |= L;                                         
+ 169   2                      i = i * 0.0625 * 10 + 0.5;
+ 170   2                      Display(i);
+ 171   2              }
+ 172   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    378    ----
+   CONSTANT SIZE    =     27    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+C51 COMPILER V8.08   MAIN                                                                  08/31/2015 16:11:04 PAGE 4   
+
+   DATA SIZE        =   ----       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

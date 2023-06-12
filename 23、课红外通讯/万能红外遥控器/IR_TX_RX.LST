@@ -1,0 +1,159 @@
+C51 COMPILER V8.08   IR_TX_RX                                                              09/05/2015 21:41:46 PAGE 1   
+
+
+C51 COMPILER V8.08, COMPILATION OF MODULE IR_TX_RX
+OBJECT MODULE PLACED IN IR_TX_RX.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE IR_TX_RX.C BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*FOSC=11.0592MHz*/
+   2          #include "qxmcs51_config.h"
+   3          #include "delay.h"
+   4          #include "IR_TX_RX.H"
+   5          
+   6          BOOL    IR_RX_Finish;
+   7          INT8U   IR_RX_CODE[4];
+   8          extern INT8U IR_TX_CODE[4];
+   9          void IR_TX_RX_Init()
+  10          {
+  11   1              TMOD = 0x12;// 0001(timer1) 0010(timer0) 
+  12   1              TH0     = 0xf4;
+  13   1              TL0     = 0xf4;//38KHz 
+  14   1              EA      = 1;// Enable All Interrupt
+  15   1              ET1     = 1;// Enable Timer1
+  16   1              ET0     = 1;// Enable Timer0
+  17   1              EX0     = 1;// Enable External Interrupt0
+  18   1              P_IR_TX = 1;    // stop emit
+  19   1      }
+  20          
+  21          void Timer1_Delay(INT8U th1,INT8U tl1,BOOL mod)
+  22          {
+  23   1              TH1 = th1;
+  24   1              TL1 = tl1;
+  25   1              TR1 = 1;//timer1 run
+  26   1              TR0 = mod;//timer0 run
+  27   1              while(!TF1);//wait timer1 flag
+  28   1              TF1 = 0;
+  29   1              TR0 = 0;//timer0 stop run
+  30   1              TR1 = 0;//timer1 stop run
+  31   1              P_IR_TX = 1;// stop emit
+  32   1      }
+  33          
+  34          void Transmit_TR_CODE()
+  35          {
+  36   1              INT8U num, num1, IR_CodeBuf[4];
+  37   1              EX0 = 0;
+  38   1              Timer1_Delay(0xdf, 0x9a, 1);//emit 9ms
+  39   1              Timer1_Delay(0xef, 0xcd, 0);//delay 4.5ms
+  40   1              for(num = 0; num < 4; num++)
+  41   1              {
+  42   2                      IR_CodeBuf[num] = IR_TX_CODE[num];
+  43   2                      for(num1 = 0; num1 < 8; num1++)
+  44   2                      {
+  45   3                              Timer1_Delay(0xfd, 0xfc, 1);//emit 0.56ms
+  46   3                              if (IR_CodeBuf[num] & 0x01)
+  47   3                              {
+  48   4                                      Timer1_Delay(0xf9, 0xef, 0);//delay 1.685ms
+  49   4                              }
+  50   3                              else
+  51   3                              {
+  52   4                                      Timer1_Delay(0xfd, 0xfc, 0);//delay 0.56ms
+  53   4                              }
+  54   3                              IR_CodeBuf[num] >>= 1;
+  55   3                      }
+C51 COMPILER V8.08   IR_TX_RX                                                              09/05/2015 21:41:46 PAGE 2   
+
+  56   2              }
+  57   1              Timer1_Delay(0xfd, 0xd7, 1);//emit 600us
+  58   1              EX0 = 1;//open interrupt
+  59   1      }
+  60          
+  61          void Timer0() interrupt 1 //1 mean timer0
+  62          {
+  63   1              P_IR_TX = ~P_IR_TX;
+  64   1      }
+  65          void Timer1() interrupt 3
+  66          {
+  67   1              
+  68   1      }
+  69          void External() interrupt 0//0 mean external interrupt0
+  70          {
+  71   1              BOOL Start_Flag;
+  72   1              INT8U num,num1; 
+  73   1      
+  74   1              EX0 = 0;//close interrupt
+  75   1              TH1 = 0xe0;
+  76   1              TL1 = 0x52;     //8800us
+  77   1              TF1 = 0;
+  78   1              TR1 = 1;// timer1 run
+  79   1              Start_Flag = 1;
+  80   1              while(!TF1)//timer flag  
+  81   1              {
+  82   2                      if(P_IR_RX)
+  83   2                              Start_Flag = 0;
+  84   2              }
+  85   1              TR1 = 0;//important
+  86   1              TF1 = 0;//clear timer1 flag
+  87   1              TH1 = 0xee;
+  88   1              TL1 = 0x12; //4980us
+  89   1              TR1 = 1;//timer1 run
+  90   1              while(!TF1);
+  91   1              {
+  92   2                      if(P_IR_RX)
+  93   2                              Start_Flag = 0;
+  94   2              }
+  95   1              TR1 = 0;//rimer1 stop run
+  96   1              TF1 = 0;//clear timer1 flag
+  97   1              if ((P_IR_RX == 0) && Start_Flag)
+  98   1              {
+  99   2                      for(num = 0; num < 4 ; num++)
+ 100   2                      {
+ 101   3                              for(num1 = 0; num1 < 8; num1++)
+ 102   3                              {
+ 103   4                                      IR_RX_CODE[num] >>= 1;
+ 104   4                                      while(!P_IR_RX);//wait for high level
+ 105   4                                      TH1 = 0xfc;
+ 106   4                                      TL1 = 0xFA;//840us
+ 107   4                                      TR1 = 1;//timer1 run
+ 108   4                                      while(!TF1);//wait for timer1 flag
+ 109   4                                      TR1 = 0;//timer1 run 
+ 110   4                                      TF1 = 0;//clear timer1 flag
+ 111   4                                      if(P_IR_RX)
+ 112   4                                      {
+ 113   5                                              IR_RX_CODE[num] |= 0x80;
+ 114   5                                              TH1 = 0xfb;
+ 115   5                                              TL1 = 0xf3;//1125us
+ 116   5                                              TR1 = 1;//timer1 run
+ 117   5                                              while(!TF1);//wait for timer1 flag
+C51 COMPILER V8.08   IR_TX_RX                                                              09/05/2015 21:41:46 PAGE 3   
+
+ 118   5                                              TR1 = 0;//timer1 run 
+ 119   5                                              TF1 = 0;//clear timer1 flag
+ 120   5                                      }
+ 121   4                              }
+ 122   3                      }
+ 123   2                      IR_RX_Finish = 1;
+ 124   2                      for(num1 = 0; num1 < 5; num1++)
+ 125   2                      {
+ 126   3                              BEEP = !BEEP;
+ 127   3                              Delay_Ms(20);
+ 128   3                      }
+ 129   2                      BEEP = 1;
+ 130   2              }
+ 131   1              EX0 = 1;
+ 132   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    357    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      4       5
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1       2
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,202 @@
+C51 COMPILER V9.00   MAIN                                                                  09/06/2019 12:58:43 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*********************************************************************************
+   2          * 【作    者】：        清翔电子
+   3          * 【版    本】：        V1.1
+   4          * 【网    站】：        http://www.qxmcu.com/ 
+   5          * 【淘宝店铺】：        http://qxmcu.taobao.com/
+   6          * 【实验平台】：        清翔 QX-MCS51 单片机开发板
+   7          * 【外部晶振】：        11.0592mhz      
+   8          * 【主控芯片】：        STC89C52
+   9          * 【编译环境】：        Keil μVisio4   
+  10          * 【程序功能】：        四位数码管显示AD通道0电压                                                                           
+  11          * 【使用说明】：        
+  12          ********************************************************************************/
+  13          #include <reg52.h>
+  14          #include <intrins.h>
+  15          
+  16          #define MAIN_Fosc               11059200UL      //宏定义主时钟HZ
+  17          
+  18          sbit CS = P3^7;
+  19          sbit DCLK = P2^1;
+  20          sbit DIN =      P2^0;
+  21          sbit DOUT = P2^5;
+  22          sbit DU = P2^6;//数码管段选
+  23          sbit WE = P2^7;//数码管段选
+  24          /*====================================
+  25          使用typedef给已有数据类型取别名
+  26          ====================================*/
+  27          typedef unsigned char INT8U;
+  28          typedef unsigned char uchar;
+  29          typedef unsigned char u8;
+  30          
+  31          typedef unsigned int INT16U;
+  32          typedef unsigned int uint;
+  33          typedef unsigned int u16;
+  34          
+  35          uint voltage;//电压值
+  36          
+  37          #define AD_CH0 0x94
+  38          #define AD_CH1 0xd4
+  39          #define AD_CH2 0xa4
+  40          #define AD_CH3 0xe4 
+  41          //通道0光敏cmd：0x94  通道1热敏cmd：0xd4  通道2电位器cmd：0xa4 通道3外部输入AIN3 cmd：0xe4
+  42          
+  43          //共阴数码管段选表0-9
+  44          uchar code SMGduan[]= {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F,};
+  45          //数码管位选码
+  46          uchar code SMGwei[] = {0xfe, 0xfd, 0xfb, 0xf7};
+  47          
+  48          /*====================================
+  49          函数：void Delay_Ms(INT16U ms)
+  50          参数：ms，毫秒延时形参
+  51          描述：12T 51单片机自适应主时钟毫秒级延时函数
+  52          ====================================*/
+  53          void Delay_Ms(INT16U ms)
+  54          {
+  55   1           INT16U i;
+C51 COMPILER V9.00   MAIN                                                                  09/06/2019 12:58:43 PAGE 2   
+
+  56   1               do{
+  57   2                    i = MAIN_Fosc / 96000; 
+  58   2                        while(--i);   //96T per loop
+  59   2           }while(--ms);
+  60   1      }
+  61          
+  62          /*====================================
+  63          函数    ：display(uchar i)
+  64          参数    ：i 显示变量取值0-9999 
+  65          返回值  ：无
+  66          描述    ：数码管动态显示函数
+  67          ====================================*/
+  68          void display(uint i)
+  69          {
+  70   1              uchar q, b, s, g;
+  71   1              static uchar wei;
+  72   1              q = i / 1000;
+  73   1              b = i % 1000 / 100;
+  74   1              s = i % 100 / 10;
+  75   1              g = i % 10;             
+  76   1              P0 = 0XFF;//清除断码
+  77   1              WE = 1;//打开位选锁存器
+  78   1              P0 = SMGwei[wei];
+  79   1              WE = 0;//锁存位选数据
+  80   1              P0 = 0XFF;//清除断码
+  81   1              switch(wei)
+  82   1              {
+  83   2                      case 0: DU = 1; P0 = SMGduan[q] | 0x80; DU = 0; break;//0x80加上小数点
+  84   2                      case 1: DU = 1; P0 = SMGduan[b];        DU = 0; break;  
+  85   2                      case 2: DU = 1; P0 = SMGduan[s];        DU = 0; break;
+  86   2                      case 3: DU = 1; P0 = SMGduan[g];        DU = 0; break;          
+  87   2              }
+  88   1              wei++;
+  89   1              if(wei == 4)
+  90   1                      wei = 0;
+  91   1      }
+  92          
+  93          /*====================================
+  94          函数    ：SPI_Write(uchar DAT)
+  95          参数    ：DAT需要发送的数据
+  96          返回值  ：无
+  97          描述    ：发送一个字节数据
+  98          ====================================*/
+  99          void SPI_Write(uchar DAT)
+ 100          {
+ 101   1              uchar i; 
+ 102   1              for(i=0; i<8; i++) //分别写8次，每次写1位
+ 103   1              {
+ 104   2                      DCLK = 0;//拉低时钟总线，允许DIN变化
+ 105   2                      if(DAT & 0x80)//先写数据最高位
+ 106   2                              DIN = 1;  //写1
+ 107   2                      else
+ 108   2                              DIN = 0;  //写0
+ 109   2                      DCLK = 1;         //拉高时钟，让从机读DIN
+ 110   2                      DAT <<= 1;        //为发送下一位左移1位
+ 111   2              }
+ 112   1      }
+ 113          /*====================================
+ 114          函数    ：ReadByte()
+ 115          参数    ：无
+ 116          返回值  ：返回读出的数据
+ 117          描述    ：
+C51 COMPILER V9.00   MAIN                                                                  09/06/2019 12:58:43 PAGE 3   
+
+ 118          ====================================*/
+ 119          uint SPI_Read()
+ 120          {
+ 121   1              uchar i; 
+ 122   1              uint DAT;
+ 123   1              for(i=0; i<12; i++)//分别读12次，每次读一位
+ 124   1              {
+ 125   2                      DAT <<= 1; //数据左移1位，准备接收一位
+ 126   2                      DCLK = 1;   //拉高时钟总线，读取SDA上的数据
+ 127   2                      DCLK = 0;   //拉低时钟总线，允许从机控制SDA变化
+ 128   2                      if(DOUT)
+ 129   2                              DAT |= 0X01;//为1则写1，否则不行执行写1，通过左移补0
+ 130   2              }
+ 131   1              return(DAT); //返回读出的数据
+ 132   1      }
+ 133          
+ 134          /*====================================
+ 135          函数    ：PCF8591Read(uchar cmd)
+ 136          参数    ：cmd XPT2046控制字节
+ 137          返回值  ：AD转出的数字量
+ 138          描述    ：读指定通道的输入的模拟量专为数字量
+ 139          ====================================*/
+ 140          uint ReadAD(uchar cmd)
+ 141          {
+ 142   1              uint DAT;
+ 143   1              CS = 0;
+ 144   1              SPI_Write(cmd);
+ 145   1              DCLK = 0;   //拉低时钟总线
+ 146   1              _nop_();
+ 147   1              _nop_();
+ 148   1              _nop_();
+ 149   1              _nop_();
+ 150   1              _nop_();
+ 151   1              DAT = SPI_Read();
+ 152   1              CS = 1;
+ 153   1              return(DAT);//返回读出数据
+ 154   1                              
+ 155   1      }
+ 156          
+ 157          void main()//main函数自身会循环
+ 158          {       
+ 159   1              uchar i;
+ 160   1              while(1)
+ 161   1              {
+ 162   2                      if(i >= 100)//延时500毫秒
+ 163   2                      {
+ 164   3                              i = 0;
+ 165   3                              voltage = ReadAD(AD_CH0);       //通道0光敏cmd：0x94  通道1热敏cmd：0xd4  通道2电位器cmd：0xa4 通道3外部输入A
+             -IN3 cmd：0xe4
+ 166   3                              voltage = voltage * 1.2207 ; //  （5/4096）
+ 167   3                      }
+ 168   2                      display(voltage);
+ 169   2                      Delay_Ms(5);
+ 170   2                      i++;
+ 171   2              }
+ 172   1      } 
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    322    ----
+   CONSTANT SIZE    =     14    ----
+   XDATA SIZE       =   ----    ----
+C51 COMPILER V9.00   MAIN                                                                  09/06/2019 12:58:43 PAGE 4   
+
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

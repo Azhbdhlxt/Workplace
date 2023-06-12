@@ -1,0 +1,138 @@
+C51 COMPILER V9.00   KEYSCAN                                                               02/23/2018 16:22:05 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE KEYSCAN
+OBJECT MODULE PLACED IN KeyScan.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE KeyScan.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*********************************************************************************
+   2          * 【作    者】：        清翔电子:向量
+   3          * 【版    本】：        V1.0
+   4          * 【网    站】：        http://www.qxmcu.com/ 
+   5          * 【淘宝店铺】：        http://qxmcu.taobao.com/
+   6          * 【实验平台】：        清翔 QX-MCS51 单片机开发板
+   7          * 【外部晶振】：        11.0592mhz      
+   8          * 【主控芯片】：        STC89C52
+   9          * 【编译环境】：        Keil μVisio4   
+  10          * 【程序功能】：        4*4矩阵键盘与4位独立键盘识别                                                                        
+  11          * 【使用说明】：        按下矩阵键盘和独立键盘任意键，数码管显示相应数值
+  12                                                  初始显示“-”横
+  13          **********************************************************************************/
+  14          #include <reg52.h>//包含51头文件
+  15          #include <intrins.h>//包含移位标准库函数头文件
+  16          
+  17          #define uint unsigned int
+  18          #define uchar unsigned char
+  19          
+  20          sbit DU = P2^6;//数码管段选
+  21          sbit WE = P2^7;//数码管段选
+  22          uchar num;//数码管显示的值
+  23          uchar KeyValue = 20;//按键值 显示-
+  24          
+  25          //共阴数码管段选表
+  26          uchar  code tabel[]= {
+  27          //0             1        2     3     4     5     6     7     8
+  28          0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F,
+  29          //9     A     B    C     D         E     F              H        L       
+  30          0x6F, 0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71, 0x76, 0x38,
+  31          //n        u      -       熄灭
+  32          0x37, 0x3E, 0x40, 0x00 };
+  33          
+  34          /*====================================
+  35          函数    ： delay(uint z)
+  36          参数    ：z 延时毫秒设定，取值范围0-65535
+  37          返回值  ：无
+  38          描述    ：12T/Fosc11.0592M毫秒级延时
+  39          ====================================*/
+  40          void delay(uint z)
+  41          {
+  42   1              uint x,y;
+  43   1              for(x = z; x > 0; x--)
+  44   1                      for(y = 114; y > 0 ; y--);              
+  45   1      } 
+  46          /*====================================
+  47          函数    ：KeyScan()
+  48          参数    ：无
+  49          返回值  ：无
+  50          描述    ：4*4矩阵键盘与独立键盘扫描
+  51          按键按下KeyValue全局变量值发生相应变化
+  52          ====================================*/
+  53          void KeyScan()
+  54          {
+  55   1              //4*4矩阵键盘扫描
+C51 COMPILER V9.00   KEYSCAN                                                               02/23/2018 16:22:05 PAGE 2   
+
+  56   1              P3 = 0XF0;//列扫描
+  57   1              if(P3 != 0XF0)//判断按键是否被按下
+  58   1              {
+  59   2                      delay(10);//软件消抖10ms
+  60   2                      if(P3 != 0XF0)//判断按键是否被按下
+  61   2                      {
+  62   3                              switch(P3) //判断那一列被按下
+  63   3                              {
+  64   4                                      case 0xe0:      KeyValue = 0;   break;//第一列被按下
+  65   4                                      case 0xd0:      KeyValue = 1;   break;//第二列被按下
+  66   4                                      case 0xb0:      KeyValue = 2;   break;//第三列被按下
+  67   4                                      case 0x70:      KeyValue = 3;   break;//第四列被按下 
+  68   4                              }
+  69   3                              P3 = 0X0F;//行扫描
+  70   3                              switch(P3) //判断那一行被按下
+  71   3                              {
+  72   4                                      case 0x0e:      KeyValue = KeyValue;    break;//第一行被按下
+  73   4                                      case 0x0d:      KeyValue = KeyValue + 4;        break;//第二行被按下
+  74   4                                      case 0x0b:      KeyValue = KeyValue + 8;        break;//第三行被按下
+  75   4                                      case 0x07:      KeyValue = KeyValue + 12;       break;//第四行被按下 
+  76   4                              }
+  77   3                              while(P3 != 0X0F);//松手检测    
+  78   3                      }
+  79   2              }
+  80   1              P3 = 0XFF;//独立按键扫描
+  81   1              if(P3 != 0XFF)
+  82   1              {
+  83   2                      delay(10);//软件消抖10ms
+  84   2                      if(P3 != 0XFF)
+  85   2                      {
+  86   3                              switch(P3) //判断那一行被按下
+  87   3                              {
+  88   4                                      case 0xfe:      KeyValue = 16;  break;//S2被按下
+  89   4                                      case 0xfd:      KeyValue = 17;  break;//S3被按下
+  90   4                                      case 0xfb:      KeyValue = 18;  break;//S4被按下
+  91   4                                      case 0xf7:      KeyValue = 19;  break;//S5被按下 
+  92   4                              }
+  93   3                              while(P3 != 0XFF);//松手检测                    
+  94   3                      }       
+  95   2              }
+  96   1      
+  97   1      }
+  98          
+  99          void main()//main函数自身会循环
+ 100          {
+ 101   1              WE = 1;//打开位选锁存器
+ 102   1              P0 = 0XFE; //1111 1110
+ 103   1              WE = 0;//锁存位选数据
+ 104   1      
+ 105   1              DU = 1;//打开段选锁存器
+ 106   1              while(1)
+ 107   1              {
+ 108   2                      KeyScan();//20个按键键盘扫描
+ 109   2                      P0 = tabel[KeyValue];//显示按键值
+ 110   2              }       
+ 111   1      }  
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    218    ----
+   CONSTANT SIZE    =     22    ----
+   XDATA SIZE       =   ----    ----
+C51 COMPILER V9.00   KEYSCAN                                                               02/23/2018 16:22:05 PAGE 3   
+
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      2    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

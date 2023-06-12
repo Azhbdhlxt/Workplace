@@ -1,0 +1,8 @@
+"main.obj",
+"delay.obj",
+"LCD1602.obj",
+"IR_TX_RX.obj",
+"IIC_AT24.obj",
+"KeyScan.obj" 
+TO "IR_TX_RX" 
+RAMSIZE(256) 

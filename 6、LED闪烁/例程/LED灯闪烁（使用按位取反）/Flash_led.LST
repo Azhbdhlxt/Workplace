@@ -1,0 +1,50 @@
+C51 COMPILER V9.00   FLASH_LED                                                             02/23/2018 15:44:23 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE FLASH_LED
+OBJECT MODULE PLACED IN Flash_led.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE Flash_led.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*********************************************************************************
+   2          * 【作    者】：        清翔电子:向量
+   3          * 【版    本】：        V1.0
+   4          * 【网    站】：        http://www.qxmcu.com/ 
+   5          * 【淘宝店铺】：        http://qxmcu.taobao.com/
+   6          * 【实验平台】：        清翔 QX-MCS51 单片机开发板
+   7          * 【外部晶振】：        11.0592mhz      
+   8          * 【主控芯片】：        STC89C52
+   9          * 【编译环境】：        Keil μVisio4   
+  10          * 【程序功能】：        P1口上所有LED闪烁                                                                           
+  11          * 【使用说明】： 
+  12          *  说明：免费开源，不提供源代码分析.
+  13          **********************************************************************************/
+  14          #include <reg52.h>
+  15          
+  16          unsigned int i;//0~65535
+  17          
+  18          void main()//main函数自身会循环
+  19          {
+  20   1              P1 = 0xff;//熄灭8位LED
+  21   1              while(1) //大循环
+  22   1              {
+  23   2                      P1 = ~P1;       //使用按位取反运算符使LED闪烁
+  24   2                      i = 65535;
+  25   2                      while(i--);//软件延时
+  26   2              }       
+  27   1      }   
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     27    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      2    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

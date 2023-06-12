@@ -1,0 +1,235 @@
+C51 COMPILER V8.08   IIC_AT24                                                              09/05/2015 21:41:46 PAGE 1   
+
+
+C51 COMPILER V8.08, COMPILATION OF MODULE IIC_AT24
+OBJECT MODULE PLACED IN IIC_AT24.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE IIC_AT24.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include "qxmcs51_config.h"
+   2          #include "delay.h"
+   3          #include "IIC_AT24.h"
+   4          
+   5          #define AT24C02_ADDR  0xa0      //AT24C02地址
+   6          
+   7          extern INT8U IR_RX_CODE[4];
+   8          INT8U IR_TX_CODE[4];
+   9          /*5us延时*/
+  10          /*void delay_5us()  
+  11          {
+  12                  _nop_();
+  13          }*/
+  14          
+  15          /*I2C初始化*/
+  16          void I2C_Init() 
+  17          {
+  18   1              SDA = 1;
+  19   1              _nop_();
+  20   1              SCL = 1;
+  21   1              _nop_();
+  22   1      }
+  23          
+  24          /*I2C起始信号*/
+  25          void I2C_Start()  
+  26          {
+  27   1              SCL = 1;
+  28   1              _nop_();
+  29   1              SDA = 1;
+  30   1              Delay5us();
+  31   1              SDA = 0;
+  32   1              Delay5us();
+  33   1      }
+  34          
+  35          /*I2C终止信号*/
+  36          void I2C_Stop()
+  37          {
+  38   1              SDA = 0;
+  39   1              _nop_();
+  40   1              SCL = 1;
+  41   1              Delay5us();
+  42   1              SDA = 1;
+  43   1              Delay5us();
+  44   1      }
+  45          
+  46          /*主机发送应答*/
+  47          void Master_ACK(bit i)          
+  48          {
+  49   1              SCL = 0; // 拉低时钟总线允许SDA数据总线上的数据变化
+  50   1              _nop_(); // 让总线稳定
+  51   1              if (i)   //如果i = 1 那么拉低数据总线 表示主机应答
+  52   1              {
+  53   2                      SDA = 0;
+  54   2              }
+  55   1              else     
+C51 COMPILER V8.08   IIC_AT24                                                              09/05/2015 21:41:46 PAGE 2   
+
+  56   1              {
+  57   2                      SDA = 1;         //发送非应答
+  58   2              }
+  59   1              _nop_();//让总线稳定
+  60   1              SCL = 1;//拉高时钟总线 让从机从SDA线上读走 主机的应答信号
+  61   1              Delay5us();
+  62   1              SCL = 0;//拉低时钟总线， 占用总线继续通信
+  63   1              _nop_();
+  64   1              SDA = 1;//释放SDA数据总线。
+  65   1              _nop_();
+  66   1      }
+  67          
+  68          /*检测从机应答*/
+  69          bit Test_ACK()
+  70          {
+  71   1              SCL = 1;
+  72   1              Delay5us();
+  73   1              if (SDA)
+  74   1              {
+  75   2                      SCL = 0;
+  76   2                      _nop_();
+  77   2                      I2C_Stop();
+  78   2                      return(0);
+  79   2              }
+  80   1              else
+  81   1              {
+  82   2                      SCL = 0;
+  83   2                      _nop_();
+  84   2                      return(1);
+  85   2              }
+  86   1      }
+  87          
+  88          /*发送一个字节*/
+  89          void I2C_send_byte(uchar byte)
+  90          {
+  91   1              uchar i;
+  92   1              for(i = 0 ; i < 8 ; i++)
+  93   1              {
+  94   2                      SCL = 0;
+  95   2                      _nop_();
+  96   2                      if (byte & 0x80)
+  97   2                      {                               
+  98   3                              SDA = 1;        
+  99   3                              _nop_();                                   
+ 100   3                      }                               
+ 101   2                      else
+ 102   2                      {
+ 103   3                              SDA = 0;
+ 104   3                              _nop_();
+ 105   3                      }
+ 106   2                      SCL = 1;
+ 107   2                      _nop_();
+ 108   2                      byte <<= 1;     // 0101 0100B 
+ 109   2              }
+ 110   1              SCL = 0;
+ 111   1              _nop_();
+ 112   1              SDA = 1;
+ 113   1              _nop_();
+ 114   1      }
+ 115          
+ 116          
+ 117          /*I2C 读一字节*/
+C51 COMPILER V8.08   IIC_AT24                                                              09/05/2015 21:41:46 PAGE 3   
+
+ 118          uchar I2C_read_byte()
+ 119          {
+ 120   1              uchar dat,i;
+ 121   1              SCL = 0;
+ 122   1              _nop_();
+ 123   1              SDA = 1;
+ 124   1              _nop_();
+ 125   1              for(i = 0 ; i < 8 ; i++)
+ 126   1              {
+ 127   2                      SCL = 1;
+ 128   2                      _nop_();
+ 129   2                      if (SDA)                            
+ 130   2                      {
+ 131   3                               dat |= 0x01; //
+ 132   3                      }
+ 133   2                      else
+ 134   2                      {
+ 135   3                              dat &=  0xfe;   //1111 1110
+ 136   3                      }
+ 137   2                      _nop_();
+ 138   2                      SCL = 0 ;
+ 139   2                      _nop_();
+ 140   2                      if(i < 7)
+ 141   2                      {
+ 142   3                              dat = dat << 1; 
+ 143   3                      }
+ 144   2              }
+ 145   1              return(dat);
+ 146   1      }
+ 147          
+ 148          /*I2C写红外数据*/
+ 149          bit I2C_WriteData(uchar ADDR)
+ 150          {
+ 151   1              INT8U i;
+ 152   1              I2C_Start();
+ 153   1              I2C_send_byte(AT24C02_ADDR+0);
+ 154   1              if (!Test_ACK())
+ 155   1              {
+ 156   2                      return(0);
+ 157   2              }
+ 158   1              I2C_send_byte(ADDR); 
+ 159   1              if (!Test_ACK())
+ 160   1              {
+ 161   2                      return(0);
+ 162   2              }
+ 163   1              for(i = 0; i < 4; i++)
+ 164   1              {
+ 165   2                      I2C_send_byte(IR_RX_CODE[i]);
+ 166   2                      if (!Test_ACK())
+ 167   2                      {
+ 168   3                              return(0);
+ 169   3                      }
+ 170   2              }
+ 171   1              I2C_Stop();
+ 172   1              for(i = 0; i < 20; i++)
+ 173   1              {
+ 174   2                      BEEP = !BEEP;
+ 175   2                      Delay_Ms(5);
+ 176   2              }
+ 177   1              BEEP = 1;
+ 178   1              return(1);      
+ 179   1      }
+C51 COMPILER V8.08   IIC_AT24                                                              09/05/2015 21:41:46 PAGE 4   
+
+ 180          
+ 181          /*I2C读红外键值保存数据*/
+ 182          bit I2C_ReadData(uchar ADDR)
+ 183          {
+ 184   1              INT8U i;
+ 185   1              I2C_Start();
+ 186   1              I2C_send_byte(AT24C02_ADDR+0);
+ 187   1              if (!Test_ACK())
+ 188   1              {
+ 189   2                      return(0);
+ 190   2              }
+ 191   1              I2C_send_byte(ADDR);
+ 192   1              Master_ACK(0);
+ 193   1              I2C_Start();
+ 194   1              I2C_send_byte(AT24C02_ADDR+1);
+ 195   1              if (!Test_ACK())
+ 196   1              {
+ 197   2                      return(0);
+ 198   2              }
+ 199   1              for(i = 0; i < 4; i++)
+ 200   1              {
+ 201   2                      IR_TX_CODE[i] = I2C_read_byte();
+ 202   2                      Master_ACK(1);
+ 203   2              }
+ 204   1              I2C_Stop();
+ 205   1              return(1);      
+ 206   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    305    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      4       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

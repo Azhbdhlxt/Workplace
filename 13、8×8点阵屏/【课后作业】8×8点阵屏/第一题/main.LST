@@ -1,0 +1,99 @@
+C51 COMPILER V9.00   MAIN                                                                  02/23/2018 16:25:42 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*********************************************************************************
+   2          * 【作    者】：        清翔电子:向量
+   3          * 【版    本】：        V1.0
+   4          * 【网    站】：        http://www.qxmcu.com/ 
+   5          * 【淘宝店铺】：        http://qxmcu.taobao.com/
+   6          * 【实验平台】：        清翔 QX-MCS51 单片机开发板
+   7          * 【外部晶振】：        11.0592mhz      
+   8          * 【主控芯片】：        STC89C52
+   9          * 【编译环境】：        Keil μVisio4   
+  10          * 【程序功能】：        8×8点阵屏循环显示 “电”“子”“1”“2”“3”。                                                                            
+  11          * 【使用说明】：        正确安装上8*8点阵模块
+  12          **********************************************************************************/
+  13          #include <reg52.h>//包含51头文件
+  14          #include <intrins.h> //包含移位标准库函数头文件
+  15          sbit DIO = P3^4;  //串行数据口
+  16          sbit S_CLK = P3^5;//移位寄存器时钟
+  17          sbit R_CLK = P3^6;//输出锁存器时钟
+  18          
+  19          /*点阵字形码*/
+  20          unsigned char code tabel[5][8]={
+  21          0xE0,0xEE,0x01,0x6D,0x01,0x6D,0x01,0xEF,//点
+  22          0xE7,0xF7,0xF7,0xF7,0x80,0xF7,0xFB,0xC3,//子
+  23          0x81,0xE7,0xE7,0xE7,0xE7,0xE7,0xC7,0xE7,//1
+  24          0x81,0x81,0xCF,0xE7,0xF3,0xB9,0x81,0xC3,//2
+  25          0xC3,0xB9,0xF9,0xFB,0xE7,0xFB,0xB9,0xC3,//3
+  26          };
+  27          
+  28          /*====================================
+  29          函数    ：Send_Byte(unsigned char dat)
+  30          参数    ：dat SPI总线需要发送的数据，取值0-255
+  31          返回值  ：无
+  32          描述    ：SPI总线发送一字节数据
+  33          ====================================*/
+  34          void Send_Byte(unsigned char dat)
+  35          {
+  36   1              unsigned char i; //循环次数变量
+  37   1              S_CLK = 0;//拉低移位寄存器时钟
+  38   1              R_CLK = 0;//拉低输出锁存器时钟
+  39   1              for(i=0; i<8; i++) //循环8次
+  40   1              {
+  41   2                      if(dat & 0x01)//发送1
+  42   2                              DIO = 1;
+  43   2                              else      //发送0
+  44   2                              DIO = 0;
+  45   2                      dat >>= 1;//数据右移
+  46   2                      S_CLK = 1;//拉高移位寄存器时钟，数据移位
+  47   2                      S_CLK = 0;//拉低移位寄存器时钟
+  48   2              }       
+  49   1      }
+  50          
+  51          
+  52          void main()
+  53          {
+  54   1              unsigned char j, k, ROW;//j发送8列和8行字形码，k字符数量，ROW行值
+  55   1              unsigned int z; //动态扫描延时变量
+C51 COMPILER V9.00   MAIN                                                                  02/23/2018 16:25:42 PAGE 2   
+
+  56   1              while(1)
+  57   1              {
+  58   2                      for(k=0; k<5; k++)//k 需要显示的字符数量
+  59   2                      {
+  60   3                              for(z=0; z<500; z++)//z刷新次数
+  61   3                              {
+  62   4                                      ROW = 0x80;//行选初值
+  63   4                                      for(j=0; j<8; j++) //循环8次发送行和列值
+  64   4                                      {
+  65   5                                              Send_Byte(tabel[k][j]);//发送列选值
+  66   5                                              Send_Byte(ROW); //发送行选值
+  67   5                                              R_CLK = 1; //拉高输出锁存器，把移位寄存器中数据输出
+  68   5                                              R_CLK = 0; //拉低输出锁存器
+  69   5                                              ROW = _cror_(ROW, 1);//右移，选择下一行 
+  70   5                                      }
+  71   4                              }
+  72   3                      }
+  73   2              }
+  74   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    110    ----
+   CONSTANT SIZE    =     40    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

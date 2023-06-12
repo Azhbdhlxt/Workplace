@@ -1,0 +1,140 @@
+BL51 BANKED LINKER/LOCATER V6.22                                                        05/21/2019  13:46:21  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
+C:\KEIL\C51\BIN\BL51.EXE main.obj TO PWM_MOTOS RAMSIZE (256)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  main.obj (MAIN)
+  C:\KEIL\C51\LIB\C51S.LIB (?C_STARTUP)
+
+
+LINK MAP OF MODULE:  PWM_MOTOS (MAIN)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            DATA    0008H     0002H     UNIT         ?DT?MAIN
+                    000AH     0016H                  *** GAP ***
+            BIT     0020H.0   0000H.1   UNIT         _BIT_GROUP_
+                    0020H.1   0000H.7                *** GAP ***
+            IDATA   0021H     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+                    0003H     0008H                  *** GAP ***
+            CODE    000BH     0003H     ABSOLUTE     
+            CODE    000EH     0047H     UNIT         ?PR?MAIN?MAIN
+            CODE    0055H     0018H     UNIT         ?PR?TIMER0?MAIN
+            CODE    006DH     0017H     UNIT         ?PR?_DELAY?MAIN
+            CODE    0084H     000CH     UNIT         ?C_C51STARTUP
+
+
+
+OVERLAY MAP OF MODULE:   PWM_MOTOS (MAIN)
+
+
+SEGMENT                           BIT_GROUP 
+  +--> CALLED SEGMENT          START    LENGTH
+----------------------------------------------
+?C_C51STARTUP                  -----    -----
+  +--> ?PR?MAIN?MAIN
+
+?PR?MAIN?MAIN                  0020H.0  0000H.1
+  +--> ?PR?_DELAY?MAIN
+
+
+
+SYMBOL TABLE OF MODULE:  PWM_MOTOS (MAIN)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        MAIN
+  C:0000H         SYMBOL        _ICE_DUMMY_
+BL51 BANKED LINKER/LOCATER V6.22                                                      05/21/2019  13:46:21  PAGE 2
+
+
+  D:0090H         PUBLIC        P1
+  D:00B0H         PUBLIC        P3
+  D:00E8H         PUBLIC        P4
+  B:00A8H.7       PUBLIC        EA
+  D:0008H         PUBLIC        DAC_VAL
+  D:00A8H         PUBLIC        IE
+  C:006DH         PUBLIC        _delay
+  D:00B8H         PUBLIC        IP
+  C:000EH         PUBLIC        main
+  D:0009H         PUBLIC        pwm_t
+  D:0098H         PUBLIC        SCON
+  D:0089H         PUBLIC        TMOD
+  D:0088H         PUBLIC        TCON
+  B:00E8H.4       PUBLIC        DAC_DATA
+  B:00A8H.1       PUBLIC        ET0
+  D:008CH         PUBLIC        TH0
+  D:008AH         PUBLIC        TL0
+  C:0055H         PUBLIC        timer0
+  B:0088H.4       PUBLIC        TR0
+  D:00C8H         PUBLIC        T2CON
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          _DELAY
+  D:0006H         SYMBOL        ms
+  -------         DO            
+  D:0004H         SYMBOL        i
+  -------         ENDDO         
+  C:006DH         LINE#         30
+  C:006DH         LINE#         31
+  C:006DH         LINE#         33
+  C:006DH         LINE#         34
+  C:0071H         LINE#         35
+  C:007AH         LINE#         36
+  C:0083H         LINE#         37
+  -------         ENDPROC       _DELAY
+  -------         PROC          TIMER0
+  C:0055H         LINE#         39
+  C:0059H         LINE#         41
+  C:005BH         LINE#         42
+  C:0062H         LINE#         43
+  C:0066H         LINE#         45
+  C:0068H         LINE#         46
+  -------         ENDPROC       TIMER0
+  -------         PROC          MAIN
+  -------         DO            
+  B:0020H.0       SYMBOL        flag
+  -------         ENDDO         
+  C:000EH         LINE#         47
+  C:000EH         LINE#         48
+  C:000EH         LINE#         49
+  C:0010H         LINE#         50
+  C:0013H         LINE#         51
+  C:0016H         LINE#         52
+  C:0019H         LINE#         53
+  C:001BH         LINE#         54
+  C:001DH         LINE#         55
+  C:001FH         LINE#         57
+  C:0022H         LINE#         58
+BL51 BANKED LINKER/LOCATER V6.22                                                      05/21/2019  13:46:21  PAGE 3
+
+
+  C:0022H         LINE#         59
+  C:0022H         LINE#         60
+  C:0029H         LINE#         61
+  C:002EH         LINE#         62
+  C:0032H         LINE#         63
+  C:0037H         LINE#         64
+  C:0039H         LINE#         65
+  C:0043H         LINE#         66
+  C:0047H         LINE#         67
+  C:0051H         LINE#         68
+  C:0053H         LINE#         70
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        MAIN
+
+Program Size: data=11.1 xdata=0 code=136
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

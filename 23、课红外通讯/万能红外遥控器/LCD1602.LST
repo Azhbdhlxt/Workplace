@@ -1,0 +1,155 @@
+C51 COMPILER V8.08   LCD1602                                                               09/05/2015 21:41:46 PAGE 1   
+
+
+C51 COMPILER V8.08, COMPILATION OF MODULE LCD1602
+OBJECT MODULE PLACED IN LCD1602.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE LCD1602.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include "qxmcs51_config.h"
+   2          #include "delay.h"
+   3          #include "LCD1602.H"
+   4          
+   5          #define LCD1602_DataPort P0       //LCD1602数据端口
+   6          
+   7          INT8U str[3];//INT8Utostr函数转换的字符串
+   8          INT8U *INT8UtostrHEX(INT8U num) //将一个字节的数据转换为字符串
+   9          {
+  10   1              INT8U i = 0;
+  11   1              switch(num/16)
+  12   1              {
+  13   2                      case 0:         str[i] = '0';   i++;    break;
+  14   2                      case 1:         str[i] = '1';   i++;    break;
+  15   2                      case 2:         str[i] = '2';   i++;    break;
+  16   2                      case 3:         str[i] = '3';   i++;    break;
+  17   2                      case 4:         str[i] = '4';   i++;    break;
+  18   2                      case 5:         str[i] = '5';   i++;    break;
+  19   2                      case 6:         str[i] = '6';   i++;    break;
+  20   2                      case 7:         str[i] = '7';   i++;    break;
+  21   2                      case 8:         str[i] = '8';   i++;    break;
+  22   2                      case 9:         str[i] = '9';   i++;    break;
+  23   2                      case 10:        str[i] = 'A';   i++;    break;
+  24   2                      case 11:        str[i] = 'B';   i++;    break;
+  25   2                      case 12:        str[i] = 'C';   i++;    break;
+  26   2                      case 13:        str[i] = 'D';   i++;    break;
+  27   2                      case 14:        str[i] = 'E';   i++;    break;
+  28   2                      case 15:        str[i] = 'F';   i++;    break;
+  29   2              }
+  30   1      
+  31   1              switch(num%16)
+  32   1              {
+  33   2                      case 0:         str[i] = '0';   i++;    break;
+  34   2                      case 1:         str[i] = '1';   i++;    break;
+  35   2                      case 2:         str[i] = '2';   i++;    break;
+  36   2                      case 3:         str[i] = '3';   i++;    break;
+  37   2                      case 4:         str[i] = '4';   i++;    break;
+  38   2                      case 5:         str[i] = '5';   i++;    break;
+  39   2                      case 6:         str[i] = '6';   i++;    break;
+  40   2                      case 7:         str[i] = '7';   i++;    break;
+  41   2                      case 8:         str[i] = '8';   i++;    break;
+  42   2                      case 9:         str[i] = '9';   i++;    break;
+  43   2                      case 10:        str[i] = 'A';   i++;    break;
+  44   2                      case 11:        str[i] = 'B';   i++;    break;
+  45   2                      case 12:        str[i] = 'C';   i++;    break;
+  46   2                      case 13:        str[i] = 'D';   i++;    break;
+  47   2                      case 14:        str[i] = 'E';   i++;    break;
+  48   2                      case 15:        str[i] = 'F';   i++;    break;
+  49   2              }
+  50   1              str[i]='\0';
+  51   1              return str;
+  52   1      }
+  53          
+  54          BOOL LCD1602_Check_Busy()       //LCD1602忙判断 
+  55          { 
+C51 COMPILER V8.08   LCD1602                                                               09/05/2015 21:41:46 PAGE 2   
+
+  56   1              LCD1602_DataPort = 0xFF; 
+  57   1              LCD_RS = 0; //根据规定，RS为低电平，RW为高电平时，可以读状态
+  58   1              LCD_RW = 1; 
+  59   1              LCD_EN = 0; 
+  60   1              _nop_(); 
+  61   1              LCD_EN = 1;
+  62   1              return (BOOL)(LCD1602_DataPort & 0x80);
+  63   1      }
+  64          
+  65          void LCD1602_Clear()
+  66          {
+  67   1         LCD1602_Write_Com(0x01);    /*显示清屏*/ 
+  68   1         Delay_Ms(5); 
+  69   1      }
+  70          /*
+  71          INT8U LCDE1602_DATAP_ADDR()
+  72          {
+  73                  LCD1602_DataPort = 0xFF; 
+  74                  LCD_RS = 0; //根据规定，RS为低电平，RW为高电平时，可以读状态
+  75                  LCD_RW = 1; 
+  76                  LCD_EN = 0; 
+  77                  _nop_(); 
+  78                  LCD_EN = 1;
+  79                  return (LCD1602_DataPort & 0x7f);       
+  80          } */
+  81          
+  82          void LCD1602_Write_Com(INT8U com)  //LCD1602写命令
+  83          {
+  84   1              while(LCD1602_Check_Busy()); //忙则等待
+  85   1              LCD_RS = 0; 
+  86   1              LCD_RW = 0; 
+  87   1              LCD_EN = 1; 
+  88   1              LCD1602_DataPort= com; 
+  89   1              _nop_(); 
+  90   1              LCD_EN = 0;     
+  91   1      }
+  92          
+  93          void LCD1602_Write_Dat(INT8U dat)         //LCD1602写数据
+  94          {
+  95   1              while(LCD1602_Check_Busy()); //忙则等待
+  96   1              LCD_RS = 1;
+  97   1              LCD_RW = 0; 
+  98   1              LCD_EN = 1;
+  99   1              LCD1602_DataPort= dat; 
+ 100   1              _nop_();
+ 101   1              LCD_EN = 0;             
+ 102   1      }
+ 103          
+ 104          
+ 105          void LCD1602_Write_String(INT8U x,INT8U y,INT8U *s) //LCD1602写字符串
+ 106          {     
+ 107   1              if (y == 0) 
+ 108   1              {     
+ 109   2                      LCD1602_Write_Com(0x80 + x);     //表示第一行
+ 110   2              }
+ 111   1              else 
+ 112   1              {      
+ 113   2                      LCD1602_Write_Com(0xC0 + x);      //表示第二行
+ 114   2              }        
+ 115   1              while (*s != '\0') 
+ 116   1              {     
+ 117   2                      LCD1602_Write_Dat(*s++);         
+C51 COMPILER V8.08   LCD1602                                                               09/05/2015 21:41:46 PAGE 3   
+
+ 118   2              }
+ 119   1      }
+ 120          
+ 121          void LCD1602_Init() //LCD1602初始化
+ 122          {
+ 123   1         LCD1602_Write_Com(0x38);    /*显示模式设置*/ 
+ 124   1         LCD1602_Write_Com(0x06);    /*显示光标移动设置*/
+ 125   1         LCD1602_Write_Com(0x0C);    /*显示开及光标设置*/
+ 126   1         LCD1602_Write_Com(0x01);    /*显示清屏*/ 
+ 127   1         Delay_Ms(5);
+ 128   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    576    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

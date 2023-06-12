@@ -1,0 +1,222 @@
+C51 COMPILER V9.00   MAIN                                                                  09/06/2019 14:40:37 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*********************************************************************************
+   2          * 【编写时间】： 2019年5月21日
+   3          * 【作    者】： 清翔电子:03
+   4          * 【版    本】： 1.0
+   5          * 【网    站】： http://www.qxmcu.com/ 
+   6          * 【淘宝店铺】： http://qxmcu.taobao.com/ (直销店)
+   7          * 【实验平台】： QX-MCS51 单片机开发板 & QX-A51智能小车
+   8          * 【外部晶振】： 11.0592mhz     
+   9          * 【主控芯片】： STC89C52
+  10          * 【编译环境】： Keil μVisio4
+  11          * 【程序功能】： QX-MCS51 单片机开发板DA输出                                                                        
+  12          * 【使用说明】： 请把AIN3通过一条杜邦线接到DOUT上
+  13          * 【注意事项】： 
+  14          **********************************************************************************/
+  15          #include <reg52.h>
+  16          #include <intrins.h>
+  17          
+  18          sfr P4 = 0xe8;  /*C语言中声明P4口特殊功能寄存器地址*/
+  19          sbit DAC_DATA = P4^4;//DA数据口
+  20          sbit CS = P3^7;
+  21          sbit DCLK = P2^1;
+  22          sbit DIN =      P2^0;
+  23          sbit DOUT = P2^5;
+  24          sbit DU = P2^6;//数码管段选
+  25          sbit WE = P2^7;//数码管段选
+  26          
+  27          #define MAIN_Fosc               11059200UL      //宏定义主时钟HZ
+  28          #define AD_CH3 0xe4 
+  29          /*====================================
+  30          使用typedef给已有数据类型取别名
+  31          ====================================*/
+  32          typedef unsigned char INT8U;
+  33          typedef unsigned char uchar;
+  34          typedef unsigned char u8;
+  35          
+  36          typedef unsigned int INT16U;
+  37          typedef unsigned int uint;
+  38          typedef unsigned int u16;
+  39          
+  40          uchar DAC_VAL;//占空比参数 模拟8位DA输出，取值范围0-255
+  41          uchar pwm_t;//周期
+  42          uint voltage;//电压值
+  43          
+  44          //共阴数码管段选表0-9
+  45          uchar code SMGduan[]= {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F,};
+  46          //数码管位选码
+  47          uchar code SMGwei[] = {0xfe, 0xfd, 0xfb, 0xf7};
+  48          
+  49          /*====================================
+  50          函数名  ：void Delay_Ms(INT16U ms)
+  51          参数    ：ms，毫秒延时形参
+  52          返回值  ：无
+  53          描述    ：12T 51单片机自适应主时钟毫秒级延时函数
+  54          ====================================*/
+  55          void Delay_Ms(INT16U ms)
+C51 COMPILER V9.00   MAIN                                                                  09/06/2019 14:40:37 PAGE 2   
+
+  56          {
+  57   1           INT16U i;
+  58   1               do{
+  59   2                    i = MAIN_Fosc / 96000; 
+  60   2                        while(--i);   //96T per loop
+  61   2           }while(--ms);
+  62   1      }
+  63          
+  64          /*====================================
+  65          函数    ：display(uchar i)
+  66          参数    ：i 显示变量取值0-9999 
+  67          返回值  ：无
+  68          描述    ：数码管动态显示函数
+  69          ====================================*/
+  70          void display(uint i)
+  71          {
+  72   1              uchar q, b, s, g;
+  73   1              static uchar wei;
+  74   1              q = i / 1000;
+  75   1              b = i % 1000 / 100;
+  76   1              s = i % 100 / 10;
+  77   1              g = i % 10;             
+  78   1              P0 = 0XFF;//清除断码
+  79   1              WE = 1;//打开位选锁存器
+  80   1              P0 = SMGwei[wei];
+  81   1              WE = 0;//锁存位选数据
+  82   1              P0 = 0XFF;//清除断码
+  83   1              switch(wei)
+  84   1              {
+  85   2                      case 0: DU = 1; P0 = SMGduan[q] | 0x80; DU = 0; break;//0x80加上小数点
+  86   2                      case 1: DU = 1; P0 = SMGduan[b];        DU = 0; break;  
+  87   2                      case 2: DU = 1; P0 = SMGduan[s];        DU = 0; break;
+  88   2                      case 3: DU = 1; P0 = SMGduan[g];        DU = 0; break;          
+  89   2              }
+  90   1              wei++;
+  91   1              if(wei == 4)
+  92   1                      wei = 0;
+  93   1      }
+  94          
+  95          /*====================================
+  96          函数    ：SPI_Write(uchar DAT)
+  97          参数    ：DAT需要发送的数据
+  98          返回值  ：无
+  99          描述    ：发送一个字节数据
+ 100          ====================================*/
+ 101          void SPI_Write(uchar DAT)
+ 102          {
+ 103   1              uchar i; 
+ 104   1              for(i=0; i<8; i++) //分别写8次，每次写1位
+ 105   1              {
+ 106   2                      DCLK = 0;//拉低时钟总线，允许DIN变化
+ 107   2                      if(DAT & 0x80)//先写数据最高位
+ 108   2                              DIN = 1;  //写1
+ 109   2                      else
+ 110   2                              DIN = 0;  //写0
+ 111   2                      DCLK = 1;         //拉高时钟，让从机读DIN
+ 112   2                      DAT <<= 1;        //为发送下一位左移1位
+ 113   2              }
+ 114   1      }
+ 115          /*====================================
+ 116          函数    ：ReadByte()
+ 117          参数    ：无
+C51 COMPILER V9.00   MAIN                                                                  09/06/2019 14:40:37 PAGE 3   
+
+ 118          返回值  ：返回读出的数据
+ 119          描述    ：
+ 120          ====================================*/
+ 121          uint SPI_Read()
+ 122          {
+ 123   1              uchar i; 
+ 124   1              uint DAT;
+ 125   1              for(i=0; i<12; i++)//分别读12次，每次读一位
+ 126   1              {
+ 127   2                      DAT <<= 1; //数据左移1位，准备接收一位
+ 128   2                      DCLK = 1;   //拉高时钟总线，读取SDA上的数据
+ 129   2                      DCLK = 0;   //拉低时钟总线，允许从机控制SDA变化
+ 130   2                      if(DOUT)
+ 131   2                              DAT |= 0X01;//为1则写1，否则不行执行写1，通过左移补0
+ 132   2              }
+ 133   1              return(DAT); //返回读出的数据
+ 134   1      }
+ 135          
+ 136          /*====================================
+ 137          函数    ：PCF8591Read(uchar cmd)
+ 138          参数    ：cmd XPT2046控制字节
+ 139          返回值  ：AD转出的数字量
+ 140          描述    ：读指定通道的输入的模拟量专为数字量
+ 141          ====================================*/
+ 142          uint ReadAD(uchar cmd)
+ 143          {
+ 144   1              uint DAT;
+ 145   1              CS = 0;
+ 146   1              SPI_Write(cmd);
+ 147   1              DCLK = 0;   //拉低时钟总线
+ 148   1              _nop_();
+ 149   1              _nop_();
+ 150   1              _nop_();
+ 151   1              _nop_();
+ 152   1              _nop_();
+ 153   1              DAT = SPI_Read();
+ 154   1              CS = 1;
+ 155   1              return(DAT);//返回读出数据
+ 156   1                              
+ 157   1      }
+ 158          //定时器0中断
+ 159          void timer0() interrupt 1
+ 160          {
+ 161   1              pwm_t++;//周期自加到255溢出后自动归零
+ 162   1              if(pwm_t <= DAC_VAL)// 设置占空比
+ 163   1                      DAC_DATA = 1;
+ 164   1              else
+ 165   1                      DAC_DATA = 0;                    
+ 166   1      }
+ 167          void main()
+ 168          {
+ 169   1              uint i;
+ 170   1              TMOD |= 0x02;//8位自动重装模块
+ 171   1              TH0 = 220;
+ 172   1              TL0 = 220;//11.0592M晶振下占空比最大比值是256,输出100HZ
+ 173   1              TR0 = 1;//启动定时器0
+ 174   1              ET0 = 1;//允许定时器0中断
+ 175   1              EA      = 1;//总中断允许
+ 176   1      //      DAC_VAL = 169; //输出3.3V (一个数字量理论表示输出19.53125mV)
+ 177   1              DAC_VAL = 255;//输出5V
+ 178   1              while(1)
+ 179   1              {
+C51 COMPILER V9.00   MAIN                                                                  09/06/2019 14:40:37 PAGE 4   
+
+ 180   2                      if(i >= 1000)//延时1000毫秒
+ 181   2                      {
+ 182   3                              i = 0;
+ 183   3                              EA = 0;
+ 184   3                              voltage = ReadAD(AD_CH3);       //通道0光敏cmd：0x94  通道1热敏cmd：0xd4  通道2电位器cmd：0xa4 通道3外部输入A
+             -IN3 cmd：0xe4
+ 185   3                              voltage = voltage * 1.2207 ; //  （5/4096）
+ 186   3                              EA = 1;
+ 187   3                      }
+ 188   2                      display(voltage);
+ 189   2                      Delay_Ms(1);
+ 190   2                      i++;
+ 191   2              }
+ 192   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    380    ----
+   CONSTANT SIZE    =     14    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      5       5
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,152 @@
+C51 COMPILER V8.08   MAIN                                                                  02/12/2016 13:23:15 PAGE 1   
+
+
+C51 COMPILER V8.08, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*NECÐ­ÒéºìÍâÍ¨ÐÅ
+   2          µ¥Æ¬»ú½âÂëºóÍ¨¹ý´®¿ÚÒÔ9600µÄ±ÈÌØÂÊ·¢ËÍ³öÈ¥
+   3          */
+   4          
+   5          #include <reg52.h>
+   6          
+   7          /*====================================
+   8           ×Ô¶¨ÒåÀàÐÍÃû
+   9          ====================================*/
+  10          typedef unsigned char INT8U;
+  11          typedef unsigned char uchar;
+  12          
+  13          typedef unsigned int INT16U;
+  14          typedef unsigned int uint;
+  15          
+  16          /*====================================
+  17           Ó²¼þ½Ó¿ÚÎ»ÉùÃ÷
+  18          ====================================*/
+  19          sbit IR  = P3^2;     //¶¨ÒåºìÍâÂö³åÊý¾Ý½Ó¿Ú     Íâ²¿ÖÐ¶ÏOÊäÈë¿Ú
+  20          
+  21          uchar IRtime;           //¼ì²âºìÍâ¸ßµçÆ½³ÖÐøÊ±¼ä£¨Âö¿í£©
+  22          uchar IRcord[4];    //´ËÊý×éÓÃÓÚ´¢´æ·ÖÀë³öÀ´µÄ4¸ö×Ö½ÚµÄÊý¾Ý£¨ÓÃ»§Âë2¸ö×Ö½Ú+¼üÖµÂë2¸ö×Ö½Ú£©
+  23          uchar IRdata[33];   //´ËÊý×éÓÃÓÚ´¢´æºìÍâµÄ33Î»Êý¾Ý£¨µÚÒ»Î»ÎªÒýµ¼ÂëÓÃ»§Âë16+¼üÖµÂë16£©
+  24          bit IRpro_ok, IRok;  //µÚÒ»¸öÓÃÓÚºìÍâ½ÓÊÕ4¸ö×Ö½ÚÍê±Ï¡£IRokÓÃÎª¼ì²âÂö¿íÍê±Ï
+  25          
+  26          void init()        //³õÊ¼»¯¶¨Ê±Æ÷0 ºÍÍâ²¿ÖÐ¶Ï0
+  27          {
+  28   1              TMOD = 0x22; //¶¨Ê±Æ÷0ºÍ¶¨Ê±Æ÷1¹¤×÷·½Ê½2£¬8Î»×Ô¶¯ÖØ×°
+  29   1              TH0 = 0x00;  //¸ß8Î»×°Èë0ÄÇÃ´¶¨Ê±Æ÷Òç³öÒ»´ÎµÄÊ±¼äÊÇ256¸ö»úÆ÷ÖÜÆÚ
+  30   1              TL0 = 0x00;
+  31   1              EA = 1;      //×ÜÖÐ¶Ï
+  32   1              ET0 = 1;           //¶¨Ê±Æ÷0ÖÐ¶Ï
+  33   1              TR0 = 1;     //Æô¶¯¶¨Ê±Æ÷0
+  34   1      
+  35   1              IT0 = 1;           //ÉèÖÃÍâ²¿ÖÐ¶Ï0ÎªÌøÑØ´¥·¢·½Ê½£¬À´Ò»¸öÏÂ½µÑØ´¥·¢Ò»´Î
+  36   1              EX0 = 1;           //Æô¶¯Íâ²¿ÖÐ¶Ï0
+  37   1      
+  38   1              TH1 = 0xfd;  //´ËÒç³öÂÊÎª²¨ÌØÂÊ9600
+  39   1              TL1 = 0xfd;
+  40   1              TR1 = 1;     //Æô¶¯¶¨Ê±Æ÷1
+  41   1              SM1 = 1;     //ÉèÖÃ´®¿Ú¹¤×÷·½Ê½1£¬10Î»Òì²½ÊÕ·¢Æ÷
+  42   1      }
+  43          
+  44          void time0() interrupt 1   //¶¨Òå¶¨Ê±Æ÷0
+  45          {
+  46   1              IRtime++;                          //¼ì²âÂö¿í£¬1´ÎÎª278us
+  47   1      }
+  48          
+  49          void int0() interrupt 0                 //¶¨ÒåÍâ²¿ÖÐ¶Ï0
+  50          {
+  51   1              static uchar i;                         //      ÉùÃ÷¾²Ì¬±äÁ¿£¨ÔÚÌø³öº¯ÊýºóÔÚ»ØÀ´Ö´ÐÐµÄÊ±ºò²»»á¶ªÊ§ÊýÖµ£©iÓÃÓÚ°Ñ33´Î¸ßµçÆ½µÄ³ÖÐøÊ±¼
+             -ä´æÈëIRdata
+  52   1              static bit startflag;           //¿ªÊ¼´¢´æÂö¿í±êÖ¾Î»
+  53   1              if(startflag)                           //¿ªÊ¼½ÓÊÕÂö¿í¼ì²â
+  54   1              {
+C51 COMPILER V8.08   MAIN                                                                  02/12/2016 13:23:15 PAGE 2   
+
+  55   2                      if( (IRtime < 53) && (IRtime >= 32) ) /*ÅÐ¶ÏÊÇ·ñÊÇÒýµ¼Âë£¬µ×µçÆ½9000us+¸ß4500us 
+  56   2                      Õâ¸ö×Ô¼º¿ÉÒÔËãÎÒÒÔ11.0592À´ËãÁËNECÐ­ÒéµÄÒýµ¼ÂëµÍ8000-10000+¸ß4000-5000 
+  57   2                      Èç¹ûÒÑ¾­½ÓÊÕÁËÒýµ¼ÂëÄÇÃ´i²»»á±»ÖÃ0¾Í»á¿ªÊ¼ÒÀ´Î´æÈëÂö¿í*/
+  58   2                              i = 0;                           //Èç¹ûÊÇÒýµ¼ÂëÄÇÃ´Ö´ÐÐi=0°ÑËû´æµ½IRdataµÄµÚÒ»¸öÎ»
+  59   2                      IRdata[i] = IRtime;              //ÒÔT0µÄÒç³ö´ÎÊýÀ´¼ÆËãÂö¿í£¬°ÑÕâ¸öÊ±¼ä´æµ½Êý×éÀïÃæµ½ºóÃæÅÐ¶Ï
+  60   2                      IRtime = 0;                              //¼ÆÊýÇåÁã£¬ÏÂÒ»¸öÏÂ½µÑØµÄÊ±ºòÔÚ´æÈëÂö¿í
+  61   2                      i++;                                     //¼ÆÊýÂö¿í´æÈëµÄ´ÎÊý
+  62   2                      if(i == 33)                              //Èç¹û´æÈë34´Î Êý×éµÄÏÂ±êÊÇ´Ó0¿ªÊ¼iµÈÓÚ33±íÊ¾Ö´ÐÐÁË34´Î
+  63   2                      {
+  64   3                              IRok = 1;                                //ÄÇÃ´±íÊ¾Âö¿í¼ì²âÍê±Ï
+  65   3                              i = 0;                           //°ÑÂö¿í¼ÆÊýÇåÁã×¼±¸ÏÂ´Î´æÈë
+  66   3                      }
+  67   2              }
+  68   1              else              
+  69   1              {
+  70   2                      IRtime = 0;                              //Òýµ¼Âë¿ªÊ¼½øÈë°ÑÂö¿í¼ÆÊýÇåÁã¿ªÊ¼¼ÆÊý
+  71   2                      startflag = 1;                   //¿ªÊ¼´¦Àí±êÖ¾Î»ÖÃ1
+  72   2              }
+  73   1      }
+  74          
+  75          void IRcordpro()                                 //ÌáÈ¡ËüµÄ33´ÎÂö¿í½øÐÐÊý¾Ý½âÂë
+  76          {
+  77   1              uchar i, j, k, cord, value;     /*iÓÃÓÚ´¦Àí4¸ö×Ö½Ú£¬jÓÃÓÚ´¦ÀíÒ»¸ö×Ö½ÚÖÐÃ¿Ò»Î»£¬kÓÃÓÚ33´ÎÂö¿íÖÐµÄÄÄÒ»Î»
+  78   1              cordÓÃÓÚÈ¡³öÂö¿íµÄÊ±¼äÅÐ¶ÏÊÇ·ñ·ûºÏ1µÄÂö¿íÊ±¼ä*/
+  79   1              k = 1;                                          //´ÓµÚÒ»Î»Âö¿í¿ªÊ¼È¡£¬¶ªÆúÒýµ¼ÂëÂö¿í
+  80   1              for(i = 0; i < 4; i++)
+  81   1              {
+  82   2                      for(j = 0; j < 8; j++)
+  83   2                      {
+  84   3                              cord = IRdata[k];           //°ÑÂö¿í´æÈëcord
+  85   3                              if(cord > 5)                    //Èç¹ûÂö¿í´óÓÚÎÒ11.0592µÄt0Òç³öÂÊÎªÔ¼278us*5=1390ÄÇÃ´ÅÐ¶ÏÎª1
+  86   3                              value = value | 0x80;   /*½ÓÊÕµÄÊ±ºòÊÇÏÈ½ÓÊÕ×îµÍÎ»£¬
+  87   3                              °Ñ×îµÍÎ»ÏÈ·Åµ½valueµÄ×î¸ßÎ»ÔÚºÍ0x08°´Î»»òÒ»ÏÂ
+  88   3                              ÕâÑù²»»á¸Ä±ävaluaµÄÆäËûÎ»µÄÊýÖµÖ»»áÈÃËû×î¸ßÎ»Îª1*/
+  89   3                              if(j < 7)
+  90   3                              {
+  91   4                                      value = value >> 1;     //valueÎ»×óÒÆÒÀ´Î½ÓÊÕ8Î»Êý¾Ý¡£
+  92   4                              }
+  93   3                              k++;                            //Ã¿Ö´ÐÐÒ»´ÎÂö¿íÎ»¼Ó1
+  94   3                      }
+  95   2                      IRcord[i] = value;         //Ã¿´¦ÀíÍêÒ»¸ö×Ö½Ú°ÑËü·ÅÈëIRcordÊý×éÖÐ¡£
+  96   2                      value = 0;                         //ÇåÁãvalue·½±ãÏÂ´ÎÔÚ´æÈëÊý¾Ý
+  97   2              }
+  98   1              IRpro_ok = 1;                              //½ÓÊÕÍê4¸ö×Ö½ÚºóIRpro okÖÃ1±íÊ¾ºìÍâ½âÂëÍê³É 
+  99   1      }
+ 100          
+ 101          
+ 102          void main()
+ 103          {
+ 104   1              uchar i;
+ 105   1              init(); //Ö´ÐÐ³õÊ¼»¯¶¨Ê±Æ÷0ºÍÍâ²¿ÖÐ¶Ï0
+ 106   1              while(1)        //´óÑ­»·
+ 107   1              {
+ 108   2                      if(IRok)    //ÅÐ¶ÏÂö¿íÊÇ·ñ¼ì²âÍê±Ï                    
+ 109   2                      {   
+ 110   3                              IRcordpro();//¸ù¾ÝÂö¿í½âÂë³ö4¸ö×Ö½ÚµÄÊý¾Ý
+ 111   3                              IRok = 0;       //ÖØÐÂµÈ´ýÂö¿í¼ì²â
+ 112   3                              if(IRpro_ok) //ÅÐ¶ÏÊÇ·ñ½âÂëÍê±Ï  
+ 113   3                              {
+ 114   4                                      for(i = 0; i < 4; i++)  
+ 115   4                                      {        
+ 116   5                                              SBUF = IRcord[i];
+C51 COMPILER V8.08   MAIN                                                                  02/12/2016 13:23:15 PAGE 3   
+
+ 117   5                                              while(!TI);
+ 118   5                                              TI = 0;
+ 119   5                                      }
+ 120   4                                      IRpro_ok = 0;
+ 121   4                              }
+ 122   3                      }       
+ 123   2              }
+ 124   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    182    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     39    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

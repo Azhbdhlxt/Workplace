@@ -1,0 +1,1654 @@
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE 万年繽程序LCD1602
+OBJECT MODULE PLACED IN 万年历程序lcd1602.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE 万年历程序lcd1602.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include<reg52.h>
+   2          //#include"DS18B20_3.H"
+   3          #include <string.h>
+   4          #include <intrins.h>
+   5          #define uint unsigned int
+   6          #define uchar unsigned char
+   7          #define wd 1                            //定义是否有温度功能  =0时无温度，=1时有温度
+   8          #include "eeprom52.h"
+   9          
+  10          #define yh 0x80 //LCD第一行的初始位置,因为LCD1602字符地址首位D7恒定为1（100000000=80）
+  11          #define er 0x80+0x40 //LCD第二行初始位置（因为第二行第一个字符位置地址是0x40）
+  12          
+  13          //液晶屏的与C51之间的引脚连接定义（显示数据线接C51的P0口）
+  14          sbit en=P2^7;
+  15          sbit rw=P2^6;   //如果硬件上rw接地，就不用写这句和后面的rw=0了
+  16          sbit rs=P2^5;
+  17          
+  18          
+  19          //校时按键与C51的引脚连接定义
+  20          
+  21          sbit set=P3^0;          //设置键
+  22          sbit add=P3^1;          //加键
+  23          sbit dec=P3^2;          //减键
+  24          sbit seeNL_NZ=P3^3;     //查看农历/闹钟
+  25          
+  26          sbit DQ=P3^7;           //
+  27          sbit buzzer=P2^0;       //蜂鸣器，通过三极管8550驱动，端口低电平响
+  28          
+  29          sbit led=P2^4;          //LCD背光开关
+  30          bit  led1=1;
+  31          bit NZ_sdgb=1;
+  32          unsigned char temp_miao;
+  33          unsigned char bltime;  //背光亮的时间
+  34          
+  35          //DS1302时钟芯片与C51之间的引脚连接定义
+  36          sbit IO=P1^1;
+  37          sbit SCLK=P1^0;
+  38          sbit RST=P1^2;
+  39          
+  40          
+  41          char a,miao,shi,fen,ri,yue,nian,week,setn,temp;
+  42          uint flag;
+  43          //flag用于读取头文件中的温度值，和显示温度值
+  44          bit c_moon;
+  45          
+  46          char nz_shi,nz_fen,setNZn;      //定义闹钟变量
+  47          uchar shangyimiao,bsn,temp_hour;                        //记录上一秒时间
+  48          uchar T_NL_NZ;                                                  //计数器
+  49          bit timerOn=0;                                                  //闹钟启用标志位
+  50          bit baoshi=0;                                                   //整点报时标志位
+  51          bit  p_r=0;                                                             //平年/润年  =0表示平年，=1表示润年
+  52          data uchar year_moon,month_moon,day_moon;
+  53          
+  54          sbit ACC0=ACC^0;
+  55          sbit ACC7=ACC^7;
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 2   
+
+  56          /************************************************************
+  57          ACC累加器=A
+  58          ACC.0=E0H 
+  59          
+  60          ACC.0就是ACC的第0位。Acc可以位寻址。
+  61          
+  62          累加器ACC是一个8位的存储单元，是用来放数据的。但是，这个存储单元有其特殊的地位，
+  63          是单片机中一个非常关键的单元，很多运算都要通过ACC来进行。以后在学习指令时，
+  64          常用A来表示累加器。但有一些地方例外，比如在PUSH指令中，就必须用ACC这样的名字。
+  65          一般的说法，A代表了累加器中的内容、而ACC代表的是累加器的地址。 
+  66          ***************************************************************/
+  67          
+  68          /******************把数据保存到单片机内部eeprom中******************/
+  69          void write_eeprom()
+  70          {
+  71   1              SectorErase(0x2000);
+  72   1              byte_write(0x2000, nz_shi);
+  73   1              byte_write(0x2001, nz_fen);
+  74   1              byte_write(0x2002, timerOn);
+  75   1              byte_write(0x2060, a_a);        
+  76   1      }
+  77          
+  78          /******************把数据从单片机内部eeprom中读出来*****************/
+  79          void read_eeprom()
+  80          {
+  81   1              nz_shi   = byte_read(0x2000);
+  82   1              nz_fen = byte_read(0x2001);
+  83   1              timerOn = byte_read(0x2002);
+  84   1              a_a      = byte_read(0x2060);
+  85   1      }
+  86          
+  87          /**************开机自检eeprom初始化*****************/
+  88          void init_eeprom() 
+  89          {
+  90   1              read_eeprom();          //先读
+  91   1              if(a_a != 1)            //新的单片机初始单片机内问eeprom
+  92   1              {
+  93   2                      nz_shi   = 12;
+  94   2                      nz_fen = 30;
+  95   2                      timerOn=0;
+  96   2                      a_a = 1;
+  97   2                      write_eeprom();    //保存数据
+  98   2              }       
+  99   1      }
+ 100          
+ 101          //********阳历转换阴历表************************************
+ 102          code uchar year_code[597]={
+ 103                              0x04,0xAe,0x53,    //1901 0
+ 104                              0x0A,0x57,0x48,    //1902 3
+ 105                              0x55,0x26,0xBd,    //1903 6
+ 106                              0x0d,0x26,0x50,    //1904 9
+ 107                              0x0d,0x95,0x44,    //1905 12
+ 108                              0x46,0xAA,0xB9,    //1906 15
+ 109                              0x05,0x6A,0x4d,    //1907 18
+ 110                              0x09,0xAd,0x42,    //1908 21
+ 111                              0x24,0xAe,0xB6,    //1909
+ 112                              0x04,0xAe,0x4A,    //1910
+ 113                              0x6A,0x4d,0xBe,    //1911
+ 114                              0x0A,0x4d,0x52,    //1912
+ 115                              0x0d,0x25,0x46,    //1913
+ 116                              0x5d,0x52,0xBA,    //1914
+ 117                              0x0B,0x54,0x4e,    //1915
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 3   
+
+ 118                              0x0d,0x6A,0x43,    //1916
+ 119                              0x29,0x6d,0x37,    //1917
+ 120                              0x09,0x5B,0x4B,    //1918
+ 121                              0x74,0x9B,0xC1,    //1919
+ 122                              0x04,0x97,0x54,    //1920
+ 123                              0x0A,0x4B,0x48,    //1921
+ 124                              0x5B,0x25,0xBC,    //1922
+ 125                              0x06,0xA5,0x50,    //1923
+ 126                              0x06,0xd4,0x45,    //1924
+ 127                              0x4A,0xdA,0xB8,    //1925
+ 128                              0x02,0xB6,0x4d,    //1926
+ 129                              0x09,0x57,0x42,    //1927
+ 130                              0x24,0x97,0xB7,    //1928
+ 131                              0x04,0x97,0x4A,    //1929
+ 132                              0x66,0x4B,0x3e,    //1930
+ 133                              0x0d,0x4A,0x51,    //1931
+ 134                              0x0e,0xA5,0x46,    //1932
+ 135                              0x56,0xd4,0xBA,    //1933
+ 136                              0x05,0xAd,0x4e,    //1934
+ 137                              0x02,0xB6,0x44,    //1935
+ 138                              0x39,0x37,0x38,    //1936
+ 139                              0x09,0x2e,0x4B,    //1937
+ 140                              0x7C,0x96,0xBf,    //1938
+ 141                              0x0C,0x95,0x53,    //1939
+ 142                              0x0d,0x4A,0x48,    //1940
+ 143                              0x6d,0xA5,0x3B,    //1941
+ 144                              0x0B,0x55,0x4f,    //1942
+ 145                              0x05,0x6A,0x45,    //1943
+ 146                              0x4A,0xAd,0xB9,    //1944
+ 147                              0x02,0x5d,0x4d,    //1945
+ 148                              0x09,0x2d,0x42,    //1946
+ 149                              0x2C,0x95,0xB6,    //1947
+ 150                              0x0A,0x95,0x4A,    //1948
+ 151                              0x7B,0x4A,0xBd,    //1949
+ 152                              0x06,0xCA,0x51,    //1950
+ 153                              0x0B,0x55,0x46,    //1951
+ 154                              0x55,0x5A,0xBB,    //1952
+ 155                              0x04,0xdA,0x4e,    //1953
+ 156                              0x0A,0x5B,0x43,    //1954
+ 157                              0x35,0x2B,0xB8,    //1955
+ 158                              0x05,0x2B,0x4C,    //1956
+ 159                              0x8A,0x95,0x3f,    //1957
+ 160                              0x0e,0x95,0x52,    //1958
+ 161                              0x06,0xAA,0x48,    //1959
+ 162                              0x7A,0xd5,0x3C,    //1960
+ 163                              0x0A,0xB5,0x4f,    //1961
+ 164                              0x04,0xB6,0x45,    //1962
+ 165                              0x4A,0x57,0x39,    //1963
+ 166                              0x0A,0x57,0x4d,    //1964
+ 167                              0x05,0x26,0x42,    //1965
+ 168                              0x3e,0x93,0x35,    //1966
+ 169                              0x0d,0x95,0x49,    //1967
+ 170                              0x75,0xAA,0xBe,    //1968
+ 171                              0x05,0x6A,0x51,    //1969
+ 172                              0x09,0x6d,0x46,    //1970
+ 173                              0x54,0xAe,0xBB,    //1971
+ 174                              0x04,0xAd,0x4f,    //1972
+ 175                              0x0A,0x4d,0x43,    //1973
+ 176                              0x4d,0x26,0xB7,    //1974
+ 177                              0x0d,0x25,0x4B,    //1975
+ 178                              0x8d,0x52,0xBf,    //1976
+ 179                              0x0B,0x54,0x52,    //1977
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 4   
+
+ 180                              0x0B,0x6A,0x47,    //1978
+ 181                              0x69,0x6d,0x3C,    //1979
+ 182                              0x09,0x5B,0x50,    //1980
+ 183                              0x04,0x9B,0x45,    //1981
+ 184                              0x4A,0x4B,0xB9,    //1982
+ 185                              0x0A,0x4B,0x4d,    //1983
+ 186                              0xAB,0x25,0xC2,    //1984
+ 187                              0x06,0xA5,0x54,    //1985
+ 188                              0x06,0xd4,0x49,    //1986
+ 189                              0x6A,0xdA,0x3d,    //1987
+ 190                              0x0A,0xB6,0x51,    //1988
+ 191                              0x09,0x37,0x46,    //1989
+ 192                              0x54,0x97,0xBB,    //1990
+ 193                              0x04,0x97,0x4f,    //1991
+ 194                              0x06,0x4B,0x44,    //1992
+ 195                              0x36,0xA5,0x37,    //1993
+ 196                              0x0e,0xA5,0x4A,    //1994
+ 197                              0x86,0xB2,0xBf,    //1995
+ 198                              0x05,0xAC,0x53,    //1996
+ 199                              0x0A,0xB6,0x47,    //1997
+ 200                              0x59,0x36,0xBC,    //1998
+ 201                              0x09,0x2e,0x50,    //1999 294
+ 202                              0x0C,0x96,0x45,    //2000 297
+ 203                              0x4d,0x4A,0xB8,    //2001
+ 204                              0x0d,0x4A,0x4C,    //2002
+ 205                              0x0d,0xA5,0x41,    //2003
+ 206                              0x25,0xAA,0xB6,    //2004
+ 207                              0x05,0x6A,0x49,    //2005
+ 208                              0x7A,0xAd,0xBd,    //2006
+ 209                              0x02,0x5d,0x52,    //2007
+ 210                              0x09,0x2d,0x47,    //2008
+ 211                              0x5C,0x95,0xBA,    //2009
+ 212                              0x0A,0x95,0x4e,    //2010
+ 213                              0x0B,0x4A,0x43,    //2011
+ 214                              0x4B,0x55,0x37,    //2012
+ 215                              0x0A,0xd5,0x4A,    //2013
+ 216                              0x95,0x5A,0xBf,    //2014
+ 217                              0x04,0xBA,0x53,    //2015
+ 218                              0x0A,0x5B,0x48,    //2016
+ 219                              0x65,0x2B,0xBC,    //2017
+ 220                              0x05,0x2B,0x50,    //2018
+ 221                              0x0A,0x93,0x45,    //2019
+ 222                              0x47,0x4A,0xB9,    //2020
+ 223                              0x06,0xAA,0x4C,    //2021
+ 224                              0x0A,0xd5,0x41,    //2022
+ 225                              0x24,0xdA,0xB6,    //2023
+ 226                              0x04,0xB6,0x4A,    //2024
+ 227                              0x69,0x57,0x3d,    //2025
+ 228                              0x0A,0x4e,0x51,    //2026
+ 229                              0x0d,0x26,0x46,    //2027
+ 230                              0x5e,0x93,0x3A,    //2028
+ 231                              0x0d,0x53,0x4d,    //2029
+ 232                              0x05,0xAA,0x43,    //2030
+ 233                              0x36,0xB5,0x37,    //2031
+ 234                              0x09,0x6d,0x4B,    //2032
+ 235                              0xB4,0xAe,0xBf,    //2033
+ 236                              0x04,0xAd,0x53,    //2034
+ 237                              0x0A,0x4d,0x48,    //2035
+ 238                              0x6d,0x25,0xBC,    //2036
+ 239                              0x0d,0x25,0x4f,    //2037
+ 240                              0x0d,0x52,0x44,    //2038
+ 241                              0x5d,0xAA,0x38,    //2039
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 5   
+
+ 242                              0x0B,0x5A,0x4C,    //2040
+ 243                              0x05,0x6d,0x41,    //2041
+ 244                              0x24,0xAd,0xB6,    //2042
+ 245                              0x04,0x9B,0x4A,    //2043
+ 246                              0x7A,0x4B,0xBe,    //2044
+ 247                              0x0A,0x4B,0x51,    //2045
+ 248                              0x0A,0xA5,0x46,    //2046
+ 249                              0x5B,0x52,0xBA,    //2047
+ 250                              0x06,0xd2,0x4e,    //2048
+ 251                              0x0A,0xdA,0x42,    //2049
+ 252                              0x35,0x5B,0x37,    //2050
+ 253                              0x09,0x37,0x4B,    //2051
+ 254                              0x84,0x97,0xC1,    //2052
+ 255                              0x04,0x97,0x53,    //2053
+ 256                              0x06,0x4B,0x48,    //2054
+ 257                              0x66,0xA5,0x3C,    //2055
+ 258                              0x0e,0xA5,0x4f,    //2056
+ 259                              0x06,0xB2,0x44,    //2057
+ 260                              0x4A,0xB6,0x38,    //2058
+ 261                              0x0A,0xAe,0x4C,    //2059
+ 262                              0x09,0x2e,0x42,    //2060
+ 263                              0x3C,0x97,0x35,    //2061
+ 264                              0x0C,0x96,0x49,    //2062
+ 265                              0x7d,0x4A,0xBd,    //2063
+ 266                              0x0d,0x4A,0x51,    //2064
+ 267                              0x0d,0xA5,0x45,    //2065
+ 268                              0x55,0xAA,0xBA,    //2066
+ 269                              0x05,0x6A,0x4e,    //2067
+ 270                              0x0A,0x6d,0x43,    //2068
+ 271                              0x45,0x2e,0xB7,    //2069
+ 272                              0x05,0x2d,0x4B,    //2070
+ 273                              0x8A,0x95,0xBf,    //2071
+ 274                              0x0A,0x95,0x53,    //2072
+ 275                              0x0B,0x4A,0x47,    //2073
+ 276                              0x6B,0x55,0x3B,    //2074
+ 277                              0x0A,0xd5,0x4f,    //2075
+ 278                              0x05,0x5A,0x45,    //2076
+ 279                              0x4A,0x5d,0x38,    //2077
+ 280                              0x0A,0x5B,0x4C,    //2078
+ 281                              0x05,0x2B,0x42,    //2079
+ 282                              0x3A,0x93,0xB6,    //2080
+ 283                              0x06,0x93,0x49,    //2081
+ 284                              0x77,0x29,0xBd,    //2082
+ 285                              0x06,0xAA,0x51,    //2083
+ 286                              0x0A,0xd5,0x46,    //2084
+ 287                              0x54,0xdA,0xBA,    //2085
+ 288                              0x04,0xB6,0x4e,    //2086
+ 289                              0x0A,0x57,0x43,    //2087
+ 290                              0x45,0x27,0x38,    //2088
+ 291                              0x0d,0x26,0x4A,    //2089
+ 292                              0x8e,0x93,0x3e,    //2090
+ 293                              0x0d,0x52,0x52,    //2091
+ 294                              0x0d,0xAA,0x47,    //2092
+ 295                              0x66,0xB5,0x3B,    //2093
+ 296                              0x05,0x6d,0x4f,    //2094
+ 297                              0x04,0xAe,0x45,    //2095
+ 298                              0x4A,0x4e,0xB9,    //2096
+ 299                              0x0A,0x4d,0x4C,    //2097
+ 300                              0x0d,0x15,0x41,    //2098
+ 301                              0x2d,0x92,0xB5,    //2099
+ 302          };
+ 303          
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 6   
+
+ 304          ///月份数据表
+ 305          code uchar day_code1[9]={0x0,0x1f,0x3b,0x5a,0x78,0x97,0xb5,0xd4,0xf3};
+ 306          code uint day_code2[3]={0x111,0x130,0x14e};
+ 307          
+ 308          /*
+ 309          函数功能:输入BCD阳历数据,输出BCD阴历数据(只允许1901-2099年)
+ 310          调用函数示例:Conversion(c_sun,year_sun,month_sun,day_sun)
+ 311          如:计算2004年10月16日Conversion(0,0x4,0x10,0x16);
+ 312          c_sun,year_sun,month_sun,day_sun均为BCD数据,c_sun为世纪标志位,c_sun=0为21世
+ 313          纪,c_sun=1为19世纪
+ 314          调用函数后,原有数据不变,读c_moon,year_moon,month_moon,day_moon得出阴历BCD数据
+ 315          */
+ 316          
+ 317          bit c_moon;
+ 318          //子函数,用于读取数据表中农历月的大月或小月,如果该月为大返回1,为小返回0
+ 319          bit get_moon_day(uchar month_p,uint table_addr)
+ 320          {
+ 321   1              uchar temp10;
+ 322   1          switch (month_p){
+ 323   2              case 1:{temp10=year_code[table_addr]&0x08;
+ 324   3                   if (temp10==0)return(0);else return(1);}
+ 325   2              case 2:{temp10=year_code[table_addr]&0x04;
+ 326   3                   if (temp10==0)return(0);else return(1);}
+ 327   2              case 3:{temp10=year_code[table_addr]&0x02;
+ 328   3                   if (temp10==0)return(0);else return(1);}
+ 329   2              case 4:{temp10=year_code[table_addr]&0x01;
+ 330   3                   if (temp10==0)return(0);else return(1);}
+ 331   2              case 5:{temp10=year_code[table_addr+1]&0x80;
+ 332   3                   if (temp10==0) return(0);else return(1);}
+ 333   2              case 6:{temp10=year_code[table_addr+1]&0x40;
+ 334   3                   if (temp10==0)return(0);else return(1);}
+ 335   2              case 7:{temp10=year_code[table_addr+1]&0x20;
+ 336   3                   if (temp10==0)return(0);else return(1);}
+ 337   2              case 8:{temp10=year_code[table_addr+1]&0x10;
+ 338   3                   if (temp10==0)return(0);else return(1);}
+ 339   2              case 9:{temp10=year_code[table_addr+1]&0x08;
+ 340   3                   if (temp10==0)return(0);else return(1);}
+ 341   2              case 10:{temp10=year_code[table_addr+1]&0x04;
+ 342   3                   if (temp10==0)return(0);else return(1);}
+ 343   2              case 11:{temp10=year_code[table_addr+1]&0x02;
+ 344   3                   if (temp10==0)return(0);else return(1);}
+ 345   2              case 12:{temp10=year_code[table_addr+1]&0x01;
+ 346   3                   if (temp10==0)return(0);else return(1);}
+ 347   2              case 13:{temp10=year_code[table_addr+2]&0x80;
+ 348   3                   if (temp10==0)return(0);else return(1);}
+ 349   2                      default:return(2);
+ 350   2          }
+ 351   1      }
+ 352          
+ 353          /*
+ 354          函数功能:输入BCD阳历数据,输出BCD阴历数据(只允许1901-2099年)
+ 355          调用函数示例:Conversion(c_sun,year_sun,month_sun,day_sun)
+ 356          如:计算2004年10月16日Conversion(0,0x4,0x10,0x16);
+ 357          c_sun,year_sun,month_sun,day_sun均为BCD数据,c_sun为世纪标志位,c_sun=0为21世
+ 358          纪,c_sun=1为19世纪
+ 359          调用函数后,原有数据不变,读c_moon,year_moon,month_moon,day_moon得出阴历BCD数据
+ 360          */
+ 361          
+ 362          void Conversion(bit c,uchar year,uchar month,uchar day)
+ 363          {                         //c=0 为21世纪,c=1 为19世纪 输入输出数据均为BCD数据
+ 364   1          uchar temp1,temp2,temp3,month_p;
+ 365   1          uint temp4,table_addr;
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 7   
+
+ 366   1          bit flag2,flag_y;
+ 367   1          temp1=year/16;   //BCD->hex 先把数据转换为十六进制
+ 368   1          temp2=year%16;
+ 369   1         // year=temp1*10+temp2;
+ 370   1              year=temp1*16+temp2;
+ 371   1          temp1=month/16;
+ 372   1          temp2=month%16;
+ 373   1          //month=temp1*10+temp2;
+ 374   1              month=temp1*16+temp2;
+ 375   1          temp1=day/16;
+ 376   1          temp2=day%16;
+ 377   1          //day=temp1*10+temp2;
+ 378   1              day=temp1*16+temp2;
+ 379   1          //定位数据表地址
+ 380   1          if(c==0){                   
+ 381   2              table_addr=(year+0x64-1)*0x3;
+ 382   2          }
+ 383   1          else {
+ 384   2              table_addr=(year-1)*0x3;
+ 385   2          }
+ 386   1          //定位数据表地址完成
+ 387   1          //取当年春节所在的公历月份
+ 388   1          temp1=year_code[table_addr+2]&0x60; 
+ 389   1          temp1=_cror_(temp1,5);
+ 390   1          //取当年春节所在的公历月份完成
+ 391   1          //取当年春节所在的公历日
+ 392   1          temp2=year_code[table_addr+2]&0x1f; 
+ 393   1          //取当年春节所在的公历日完成
+ 394   1          // 计算当年春年离当年元旦的天数,春节只会在公历1月或2月
+ 395   1          if(temp1==0x1){  
+ 396   2              temp3=temp2-1;  
+ 397   2          }  
+ 398   1          else{
+ 399   2              temp3=temp2+0x1f-1;        
+ 400   2          }
+ 401   1          // 计算当年春年离当年元旦的天数完成
+ 402   1          //计算公历日离当年元旦的天数,为了减少运算,用了两个表
+ 403   1          //day_code1[9],day_code2[3]
+ 404   1          //如果公历月在九月或前,天数会少于0xff,用表day_code1[9],
+ 405   1          //在九月后,天数大于0xff,用表day_code2[3]
+ 406   1          //如输入公历日为8月10日,则公历日离元旦天数为day_code1[8-1]+10-1
+ 407   1          //如输入公历日为11月10日,则公历日离元旦天数为day_code2[11-10]+10-1
+ 408   1          if (month<10){ 
+ 409   2              temp4=day_code1[month-1]+day-1;
+ 410   2          }
+ 411   1          else{
+ 412   2              temp4=day_code2[month-10]+day-1;
+ 413   2          }
+ 414   1          if ((month>0x2)&&(year%0x4==0)){  //如果公历月大于2月并且该年的2月为闰月,天数加1
+ 415   2              temp4+=1;
+ 416   2          }
+ 417   1          //计算公历日离当年元旦的天数完成
+ 418   1          //判断公历日在春节前还是春节后
+ 419   1          if (temp4>=temp3){ //公历日在春节后或就是春节当日使用下面代码进行运算
+ 420   2              temp4-=temp3;
+ 421   2              month=0x1;
+ 422   2              month_p=0x1;  //month_p为月份指向,公历日在春节前或就是春节当日month_p指向首月
+ 423   2              flag2=get_moon_day(month_p,table_addr); //检查该农历月为大小还是小月,大月返回1,小月返回0
+ 424   2              flag_y=0;
+ 425   2              if(flag2==0)temp1=0x1d; //小月29天
+ 426   2              else temp1=0x1e; //大小30天
+ 427   2              temp2=year_code[table_addr]&0xf0;
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 8   
+
+ 428   2              temp2=_cror_(temp2,4);  //从数据表中取该年的闰月月份,如为0则该年无闰月
+ 429   2              while(temp4>=temp1){
+ 430   3                  temp4-=temp1;
+ 431   3                  month_p+=1;
+ 432   3                  if(month==temp2){
+ 433   4                  flag_y=~flag_y;
+ 434   4                  if(flag_y==0)month+=1;
+ 435   4                  }
+ 436   3                  else month+=1;
+ 437   3                  flag2=get_moon_day(month_p,table_addr);
+ 438   3                  if(flag2==0)temp1=0x1d;
+ 439   3                  else temp1=0x1e;
+ 440   3              }
+ 441   2              day=temp4+1;
+ 442   2          }
+ 443   1          else{  //公历日在春节前使用下面代码进行运算
+ 444   2              temp3-=temp4;
+ 445   2              if (year==0x0){year=0x63;c=1;}
+ 446   2              else year-=1;
+ 447   2              table_addr-=0x3;
+ 448   2              month=0xc;
+ 449   2              temp2=year_code[table_addr]&0xf0;
+ 450   2              temp2=_cror_(temp2,4);
+ 451   2              if (temp2==0)
+ 452   2                              month_p=0xc; 
+ 453   2              else
+ 454   2                              month_p=0xd; //
+ 455   2              
+ 456   2               //month_p为月份指向,如果当年有闰月,一年有十三个月,月指向13,无闰月指向12
+ 457   2              
+ 458   2              flag_y=0;
+ 459   2              flag2=get_moon_day(month_p,table_addr);
+ 460   2              if(flag2==0)temp1=0x1d;
+ 461   2              else temp1=0x1e;
+ 462   2              while(temp3>temp1){
+ 463   3                  temp3-=temp1;
+ 464   3                  month_p-=1;
+ 465   3                  if(flag_y==0)month-=1;
+ 466   3                  if(month==temp2)flag_y=~flag_y;
+ 467   3                  flag2=get_moon_day(month_p,table_addr);
+ 468   3                  if(flag2==0)temp1=0x1d;
+ 469   3                  else temp1=0x1e;
+ 470   3               }
+ 471   2              day=temp1-temp3+1;
+ 472   2          }
+ 473   1          c_moon=c;                 //HEX->BCD ,运算结束后,把数据转换为BCD数据
+ 474   1          temp1=year/10;
+ 475   1          temp1=_crol_(temp1,4);
+ 476   1          temp2=year%10;
+ 477   1          year_moon=temp1|temp2;
+ 478   1          temp1=month/10;
+ 479   1          temp1=_crol_(temp1,4);
+ 480   1          temp2=month%10;
+ 481   1          month_moon=temp1|temp2;
+ 482   1          temp1=day/10;
+ 483   1          temp1=_crol_(temp1,4);
+ 484   1          temp2=day%10;
+ 485   1          day_moon=temp1|temp2;
+ 486   1      }
+ 487          
+ 488          
+ 489          /*
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 9   
+
+ 490          函数功能:输入BCD阳历数据,输出BCD星期数据(只允许1901-2099年)
+ 491          调用函数示例:Conver_week(c_sun,year_sun,month_sun,day_sun)
+ 492          如:计算2004年10月16日Conversion(0,0x4,0x10,0x16);
+ 493          c_sun,year_sun,month_sun,day_sun均为BCD数据,c_sun为世纪标志位,c_sun=0为21世
+ 494          纪,c_sun=1为19世纪
+ 495          调用函数后,原有数据不变,读week得出阴历BCD数据
+ 496          */
+ 497          code uchar table_week[12]={0,3,3,6,1,4,6,2,5,0,3,5}; //月修正数据表
+ 498          /*
+ 499          算法:日期+年份+所过闰年数+月较正数之和除7 的余数就是星期但如果是在
+ 500          闰年又不到3 月份上述之和要减一天再除7
+ 501          星期数为0
+ 502          */
+ 503          void Conver_week(uchar year,uchar month,uchar day)
+ 504          {//c=0 为21世纪,c=1 为19世纪 输入输出数据均为BCD数据
+ 505   1          uchar p1,p2;
+ 506   1          year+=0x64;  //如果为21世纪,年份数加100
+ 507   1          p1=year/0x4;  //所过闰年数只算1900年之后的
+ 508   1          p2=year+p1;
+ 509   1          p2=p2%0x7;  //为节省资源,先进行一次取余,避免数大于0xff,避免使用整型数据
+ 510   1          p2=p2+day+table_week[month-1];
+ 511   1          if (year%0x4==0&&month<3)p2-=1;
+ 512   1          week=p2%0x7;
+ 513   1      }
+ 514          
+ 515          
+ 516          /**************************************************************/
+ 517          
+ 518          uchar code tab1[]={"20  -  -   "};      //年显示的固定字符
+ 519          uchar code tab2[]={"  :  :  "};         //时间显示的固定字符
+ 520          uchar code nlp[]={"NL:  -  -   PING"};  //农历平年显示
+ 521          uchar code nlr[]={"NL:  -  -   RUN "};  //农历润年显示
+ 522          uchar code NZd[]={"timer:   :      "};  //显示闹钟固定点
+ 523          uchar code qk[]= {"                "};  //清空显示
+ 524          uchar code tm[]= {"time"};
+ 525          
+ 526          
+ 527          
+ 528          //=====================DS18B20=============================================
+ 529          //******************************************************************************
+ 530          void Delayns(int num)//延时函数
+ 531          {
+ 532   1              while(num--);
+ 533   1      }       
+ 534          
+ 535          
+ 536          //******************************************************************************
+ 537          void Init_DS18B20(void)//初始化ds1820
+ 538          {
+ 539   1              unsigned char x=0;
+ 540   1              DQ = 1;    //DQ复位
+ 541   1              Delayns(8);  //稍做延时
+ 542   1              DQ = 0;    //单片机将DQ拉低
+ 543   1              Delayns(80); //精确延时 大于 480us
+ 544   1              DQ = 1;    //拉高总线
+ 545   1              Delayns(14);
+ 546   1              x=DQ;      //稍做延时后 如果x=0则初始化成功 x=1则初始化失败
+ 547   1              Delayns(20);
+ 548   1      }
+ 549          //******************************************************************************
+ 550          unsigned char ReadOneChar(void)//读一个字节
+ 551          {
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 10  
+
+ 552   1              unsigned char i=0;
+ 553   1              unsigned char dat = 0;
+ 554   1              for (i=8;i>0;i--)
+ 555   1              {
+ 556   2                      DQ = 0; // 给脉冲信号
+ 557   2                      dat>>=1;
+ 558   2                      DQ = 1; // 给脉冲信号
+ 559   2                      if(DQ)
+ 560   2                      dat|=0x80;
+ 561   2                      Delayns(4);
+ 562   2              }
+ 563   1              return(dat);
+ 564   1      }
+ 565          
+ 566          //******************************************************************************
+ 567          void WriteOneChar(unsigned char dat)//写一个字节
+ 568          {
+ 569   1              unsigned char i=0;
+ 570   1              for (i=8; i>0; i--)
+ 571   1              {
+ 572   2                      DQ = 0;
+ 573   2                      DQ = dat&0x01;
+ 574   2                      Delayns(5);
+ 575   2                      DQ = 1;
+ 576   2                      dat>>=1;
+ 577   2              }
+ 578   1      }
+ 579          //******************************************************************************
+ 580          unsigned int ReadTemperature(void)//读取温度
+ 581          {
+ 582   1              unsigned char a=0;
+ 583   1              unsigned char b=0;
+ 584   1              unsigned int t=0;
+ 585   1              float tt=0;
+ 586   1              Init_DS18B20();
+ 587   1              WriteOneChar(0xCC); // 跳过读序号列号的操作
+ 588   1              WriteOneChar(0x44); // 启动温度转换
+ 589   1              Init_DS18B20();
+ 590   1              WriteOneChar(0xCC); //跳过读序号列号的操作
+ 591   1              WriteOneChar(0xBE); //读取温度寄存器
+ 592   1              a=ReadOneChar();  //读低8位
+ 593   1              b=ReadOneChar(); //读高8位
+ 594   1              t=b;
+ 595   1              t<<=8;
+ 596   1              t=t|a;
+ 597   1              tt=t*0.0625;
+ 598   1              t= tt*10+0.5; //放大10倍输出并四舍五入
+ 599   1              return(t);
+ 600   1      }
+ 601          //*****************************************************************************
+ 602          
+ 603          
+ 604          
+ 605          //延时函数，后面经常调用
+ 606          void delay(uint xms)//延时函数，有参函数
+ 607          {
+ 608   1              uint x,y;
+ 609   1              for(x=xms;x>0;x--)
+ 610   1               for(y=110;y>0;y--);
+ 611   1      }
+ 612          
+ 613          /********液晶写入指令函数与写入数据函数，以后可调用**************/
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 11  
+
+ 614          
+ 615          /*在这个程序中，液晶写入有关函数会在DS1302的函数中调用，所以液晶程序要放在前面*/
+ 616          
+ 617          void write_1602com(uchar com)//****液晶写入指令函数****
+ 618          {
+ 619   1              rs=0;//数据/指令选择置为指令
+ 620   1              rw=0; //读写选择置为写
+ 621   1              P0=com;//送入数据
+ 622   1              delay(1);
+ 623   1              en=1;//拉高使能端，为制造有效的下降沿做准备
+ 624   1              delay(1);
+ 625   1              en=0;//en由高变低，产生下降沿，液晶执行命令
+ 626   1      }
+ 627          
+ 628          
+ 629          void write_1602dat(uchar dat)//***液晶写入数据函数****
+ 630          {
+ 631   1              rs=1;//数据/指令选择置为数据
+ 632   1              rw=0; //读写选择置为写
+ 633   1              P0=dat;//送入数据
+ 634   1              delay(1);
+ 635   1              en=1; //en置高电平，为制造下降沿做准备
+ 636   1              delay(1);
+ 637   1              en=0; //en由高变低，产生下降沿，液晶执行命令
+ 638   1      }
+ 639          
+ 640          
+ 641          void lcd_init()//***液晶初始化函数****
+ 642          {
+ 643   1              write_1602com(0x38);//设置液晶工作模式，意思：16*2行显示，5*7点阵，8位数据
+ 644   1              write_1602com(0x0c);//开显示不显示光标
+ 645   1              write_1602com(0x06);//整屏不移动，光标自动右移
+ 646   1              write_1602com(0x01);//清显示
+ 647   1      
+ 648   1              write_1602com(yh+1);//日历显示固定符号从第一行第1个位置之后开始显示
+ 649   1              for(a=0;a<14;a++)
+ 650   1              {
+ 651   2              write_1602dat(tab1[a]);//向液晶屏写日历显示的固定符号部分
+ 652   2              //delay(3);
+ 653   2              }
+ 654   1              write_1602com(er);//时间显示固定符号写入位置，从第2个位置后开始显示
+ 655   1              for(a=0;a<8;a++)
+ 656   1              {
+ 657   2              write_1602dat(tab2[a]);//写显示时间固定符号，两个冒号
+ 658   2              //delay(3);
+ 659   2              }
+ 660   1      
+ 661   1      }
+ 662          
+ 663          /*********************over***********************/
+ 664          
+ 665          
+ 666          /***************DS1302有关子函数********************/
+ 667          void write_byte(uchar dat)//写一个字节
+ 668          {
+ 669   1              ACC=dat;
+ 670   1              RST=1;
+ 671   1              for(a=8;a>0;a--)
+ 672   1              {
+ 673   2                      IO=ACC0;
+ 674   2                      SCLK=0;
+ 675   2                      SCLK=1;
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 12  
+
+ 676   2                      ACC=ACC>>1;
+ 677   2              }
+ 678   1      }
+ 679          uchar read_byte()//读一个字节
+ 680          {
+ 681   1              RST=1;
+ 682   1              for(a=8;a>0;a--)
+ 683   1              {
+ 684   2                      ACC7=IO;
+ 685   2                      SCLK=1;
+ 686   2                      SCLK=0;
+ 687   2                      ACC=ACC>>1;
+ 688   2              }
+ 689   1              return (ACC);
+ 690   1      }
+ 691          //----------------------------------------
+ 692          void write_1302(uchar add,uchar dat)//向1302芯片写函数，指定写入地址，数据
+ 693          {
+ 694   1              RST=0;
+ 695   1              SCLK=0;
+ 696   1              RST=1;
+ 697   1              write_byte(add);
+ 698   1              write_byte(dat);
+ 699   1              SCLK=1;
+ 700   1              RST=0;
+ 701   1      }
+ 702          uchar read_1302(uchar add)//从1302读数据函数，指定读取数据来源地址
+ 703          {
+ 704   1              uchar temp11;
+ 705   1              RST=0;
+ 706   1              SCLK=0;
+ 707   1              RST=1;
+ 708   1              write_byte(add);
+ 709   1              temp11=read_byte();
+ 710   1              SCLK=1;
+ 711   1              RST=0;
+ 712   1              return(temp11);
+ 713   1      }
+ 714          
+ 715          uchar BCD_Decimal(uchar bcd)//BCD码转十进制函数，输入BCD，返回十进制
+ 716          {
+ 717   1      //       uchar Decimal;
+ 718   1      //       Decimal=bcd>>4;
+ 719   1               return((bcd>>4)*10+(bcd&0x0F));
+ 720   1      }
+ 721          
+ 722          //--------------------------------------
+ 723          void ds1302_init() //1302芯片初始化子函数(2010-01-07,12:00:00,week4)
+ 724          {
+ 725   1              RST=0;
+ 726   1              SCLK=0;
+ 727   1              
+ 728   1              write_1302(0x8e,0x00); //允许写，禁止写保护 
+ 729   1              //write_1302(0x80,0x00); //向DS1302内写秒寄存器80H写入初始秒数据00
+ 730   1              //write_1302(0x82,0x00);//向DS1302内写分寄存器82H写入初始分数据00
+ 731   1              //write_1302(0x84,0x12);//向DS1302内写小时寄存器84H写入初始小时数据12
+ 732   1              //write_1302(0x8a,0x04);//向DS1302内写周寄存器8aH写入初始周数据4
+ 733   1              //write_1302(0x86,0x07);//向DS1302内写日期寄存器86H写入初始日期数据07
+ 734   1              //write_1302(0x88,0x01);//向DS1302内写月份寄存器88H写入初始月份数据01
+ 735   1              //write_1302(0x8c,0x17);//向DS1302内写年份寄存器8cH写入初始年份数据17
+ 736   1              write_1302(0x8e,0x80); //打开写保护
+ 737   1      }
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 13  
+
+ 738          
+ 739          
+ 740          //------------------------------------
+ 741          //温度显示子函数
+ 742          void write_temp(uchar add,uint dat)//向LCD写温度数据,并指定显示位置
+ 743          {
+ 744   1              uint gw,sw,bw;
+ 745   1              bw=dat/100;//取得百位
+ 746   1              sw=dat%100/10;//取得十位数字
+ 747   1              gw=dat%10;//取得个位数字
+ 748   1              write_1602com(er+add);//er是头文件规定的值0x80+0x40
+ 749   1              write_1602dat(0x30+bw);
+ 750   1              write_1602dat(0x30+sw);//数字+30得到该数字的LCD1602显示码
+ 751   1              write_1602dat('.');
+ 752   1              write_1602dat(0x30+gw);//数字+30得到该数字的LCD1602显示码
+ 753   1          write_1602dat(0xdf);//显示温度的小圆圈符号，0xdf是液晶屏字符库的该符号地址码
+ 754   1              write_1602dat(0x43);    //显示"C"符号，0x43是液晶屏字符库里大写C的地址码                
+ 755   1      }
+ 756          
+ 757          //------------------------------------
+ 758          //时分秒显示子函数
+ 759          void write_sfm(uchar add,uchar dat)//向LCD写时分秒,有显示位置加、现示数据，两个参数
+ 760          {
+ 761   1              uchar gw,sw;
+ 762   1              gw=dat%10;//取得个位数字
+ 763   1              sw=dat/10;//取得十位数字
+ 764   1              write_1602com(er+add);//er是头文件规定的值0x80+0x40
+ 765   1              write_1602dat(0x30+sw);//数字+30得到该数字的LCD1602显示码
+ 766   1              write_1602dat(0x30+gw);//数字+30得到该数字的LCD1602显示码                               
+ 767   1      }
+ 768          
+ 769          //-------------------------------------
+ 770          //年月日显示子函数
+ 771          void write_nyr(uchar add,uchar dat)//向LCD写年月日，有显示位置加数、显示数据，两个参数
+ 772          {
+ 773   1              uchar gw,sw;
+ 774   1              gw=dat%10;//取得个位数字
+ 775   1              sw=dat/10;//取得十位数字
+ 776   1              write_1602com(yh+add);//设定显示位置为第一个位置+add
+ 777   1              write_1602dat(0x30+sw);//数字+30得到该数字的LCD1602显示码
+ 778   1              write_1602dat(0x30+gw);//数字+30得到该数字的LCD1602显示码       
+ 779   1      }
+ 780          
+ 781          
+ 782          //------------------------------------
+ 783          //农历显示子函数
+ 784          void write_nl(uchar add,uchar dat)//向LCD写时分秒,有显示位置加、现示数据，两个参数
+ 785          {
+ 786   1              
+ 787   1              uchar gw,sw;
+ 788   1              //gw=dat%10;//取得个位数字
+ 789   1              //sw=dat/10;//取得十位数字
+ 790   1              gw=dat%16;//取得个位数字
+ 791   1              sw=dat/16;//取得十位数字
+ 792   1              write_1602com(er+add);//er是头文件规定的值0x80+0x40
+ 793   1      //      write_1602dat(0x30+sw);//数字+30得到该数字的LCD1602显示码
+ 794   1      //      write_1602dat(0x30+gw);//数字+30得到该数字的LCD1602显示码       
+ 795   1              write_1602dat('0'+sw);//数字+30得到该数字的LCD1602显示码
+ 796   1              write_1602dat('0'+gw);//数字+30得到该数字的LCD1602显示码                
+ 797   1      }
+ 798          
+ 799          //-------------------------------------------
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 14  
+
+ 800          void write_week(uchar week)//写星期函数
+ 801          {
+ 802   1              write_1602com(yh+0x0c);//星期字符的显示位置
+ 803   1              switch(week)
+ 804   1              {
+ 805   2                      case 1:write_1602dat('M');//星期数为1时，显示
+ 806   2                                 write_1602dat('O');
+ 807   2                                 write_1602dat('N');
+ 808   2                                 break;
+ 809   2                 
+ 810   2                      case 2:write_1602dat('T');//星期数据为2时显示
+ 811   2                                 write_1602dat('U');
+ 812   2                                 write_1602dat('E');
+ 813   2                                 break;
+ 814   2                      
+ 815   2                      case 3:write_1602dat('W');//星期数据为3时显示
+ 816   2                                 write_1602dat('E');
+ 817   2                                 write_1602dat('D');
+ 818   2                                 break;
+ 819   2                      
+ 820   2                      case 4:write_1602dat('T');//星期数据为4是显示
+ 821   2                                 write_1602dat('H');
+ 822   2                                 write_1602dat('U');
+ 823   2                                 break;
+ 824   2                      
+ 825   2                      case 5:write_1602dat('F');//星期数据为5时显示
+ 826   2                                 write_1602dat('R');
+ 827   2                                 write_1602dat('I');
+ 828   2                                 break;
+ 829   2                      
+ 830   2                      case 6:write_1602dat('S');//星期数据为6时显示
+ 831   2                                 write_1602dat('T');
+ 832   2                                 write_1602dat('A');
+ 833   2                                 break;
+ 834   2                      
+ 835   2                      case 0:write_1602dat('S');//星期数据为7时显示
+ 836   2                                 write_1602dat('U');
+ 837   2                                 write_1602dat('N');
+ 838   2                                 break;
+ 839   2              }
+ 840   1      }
+ 841          
+ 842          
+ 843          //****************键盘扫描有关函数**********************
+ 844          void keyscan()
+ 845          {
+ 846   1              if(TR1==1&&setn==0&&setNZn==0&&(add==0||dec==0))
+ 847   1              NZ_sdgb=0;
+ 848   1              if(led1==1)                                                                      //背光暗时，按下任意按键打开背光
+ 849   1              {
+ 850   2                      if(seeNL_NZ==0||set==0||add==0||dec==0)
+ 851   2                      led1=0;
+ 852   2              }
+ 853   1              else if(led1==0)
+ 854   1              {
+ 855   2                      if(seeNL_NZ==0)
+ 856   2                      {
+ 857   3                              delay(9);
+ 858   3                              if(seeNL_NZ==0)
+ 859   3                              {
+ 860   4                                      led1=0;
+ 861   4                                      bltime=0;
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 15  
+
+ 862   4      //                              NZ_sdgb=0;
+ 863   4                                      if((setn==0)&&(setNZn==0))                                                              //在没有进入调时模式时才可按动
+ 864   4                                      {
+ 865   5                                              buzzer=0;//蜂鸣器短响一次
+ 866   5                                      delay(20);
+ 867   5                                      buzzer=1;
+ 868   5                      
+ 869   5                                              if(TR1==1)
+ 870   5                                              {
+ 871   6                                                      TR1=0;          
+ 872   6                                              }
+ 873   5                                              else
+ 874   5                                              {                       
+ 875   6                                                      T_NL_NZ++;
+ 876   6                                                      NZ_sdgb=1;
+ 877   6                                                      if(T_NL_NZ==3)
+ 878   6                                                      {
+ 879   7                                                              setn=0;
+ 880   7                                                              setNZn=0;
+ 881   7                                                              T_NL_NZ=0;      
+ 882   7                                                      }
+ 883   6                                              }                       
+ 884   5                                      }
+ 885   4                                      while(seeNL_NZ==0);
+ 886   4                              }
+ 887   3                      }
+ 888   2                                      
+ 889   2              
+ 890   2                      if(set==0)//---------------set为功能键（设置键）--------------------
+ 891   2                      {
+ 892   3                              delay(9);//延时，用于消抖动
+ 893   3                              if(set==0)//延时后再次确认按键按下
+ 894   3                              {
+ 895   4                                      led1=0;
+ 896   4                                      bltime=0;
+ 897   4      //                              NZ_sdgb=0;
+ 898   4                              buzzer=0;//蜂鸣器短响一次
+ 899   4                              delay(20);
+ 900   4                              buzzer=1;
+ 901   4                                      while(!set);
+ 902   4                                      if(T_NL_NZ==0x02)                       //证明是对闹钟进行设置
+ 903   4                                      {
+ 904   5                                              setNZn++;
+ 905   5                                              if(setNZn==4)                   //闹钟设定成功，退回到正常显示并开启闹钟
+ 906   5                                              {
+ 907   6                                                      setNZn=0;
+ 908   6                                                      setn=0;
+ 909   6      //                                              timerOn=1;                              
+ 910   6                                              }
+ 911   5                                              switch(setNZn)
+ 912   5                                              {
+ 913   6                                                      case 0:                                         //正常显示日期时间
+ 914   6                                                              write_1602com(0x0c);    //柚霉獗瓴簧了?
+ 915   6                                                              write_1602com(er);              //时间显示固定符号写入位置?
+ 916   6                                                              for(a=0;a<16;a++)
+ 917   6                                                              write_1602dat(NZd[a]);  //写显示时间固定符号，两个冒号
+ 918   6                                                              
+ 919   6                                                              write_sfm(7,nz_shi);    //闹钟 时
+ 920   6                                                              write_sfm(10,nz_fen);   //闹钟 分
+ 921   6                                                              write_1602com(er+13);
+ 922   6                                                              if(timerOn==1)
+ 923   6                                                              {
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 16  
+
+ 924   7                                                                      write_1602dat('O');
+ 925   7                                                                      write_1602dat('N');
+ 926   7                                                                      write_1602dat(' ');
+ 927   7                                                              }
+ 928   6                                                              else
+ 929   6                                                              {
+ 930   7                                                                      write_1602dat('O');
+ 931   7                                                                      write_1602dat('F');
+ 932   7                                                                      write_1602dat('F');
+ 933   7                                                              }
+ 934   6                                                              
+ 935   6      //                                                      write_sfm(14,nz_miao);  //闹钟 秒
+ 936   6                                                              break;
+ 937   6                                                      case 1:                                         //闹钟时光标闪烁                
+ 938   6                                                              write_1602com(er+8);    //设置按键按动一次，小时位置显示光标   //er+0x09;
+ 939   6                                                              write_1602com(0x0f);    //设置光标为闪烁
+ 940   6                                                              break;
+ 941   6                                                      case 2:                                         //闹钟分光标闪烁        
+ 942   6                                                              write_1602com(er+11);   //设置按键按动一次，位置显示光标   //er+0x09;
+ 943   6                                                              write_1602com(0x0f);    //设置光标为闪烁
+ 944   6                                                              break;
+ 945   6                                                      case 3:                                         //闹钟光标闪烁  
+ 946   6                                                              write_1602com(0x0c);    //设置光标为不闪烁
+ 947   6                                                              write_1602com(er+13);
+ 948   6                                                              if(timerOn==1)
+ 949   6                                                              {
+ 950   7                                                                      write_1602dat('O');
+ 951   7                                                                      write_1602dat('N');
+ 952   7                                                                      write_1602dat(' ');
+ 953   7                                                              }
+ 954   6                                                              else
+ 955   6                                                              {
+ 956   7                                                                      write_1602dat('O');
+ 957   7                                                                      write_1602dat('F');
+ 958   7                                                                      write_1602dat('F');
+ 959   7                                                              }
+ 960   6                                                              break;  
+ 961   6                                              }       
+ 962   5                                      }
+ 963   4              
+ 964   4                                      else                                                            //证明是对时间及日期进行设置
+ 965   4                                      {
+ 966   5                                              if(T_NL_NZ==0)
+ 967   5                                              {
+ 968   6                                                      setn++;
+ 969   6                                                      if(setn==7)
+ 970   6                                                              setn=0;                 //设置按键共有秒、分、时、星期、日、月、年、返回，8个功能循环
+ 971   6                                                      switch(setn)
+ 972   6                                                      {
+ 973   7                                                              case 1: TR0=0;//关闭定时器
+ 974   7                                                              //TR1=0;
+ 975   7                                                              write_1602com(er+7);//设置按键按动一次，秒位置显示光标   //er+0x09;
+ 976   7                                                              write_1602com(0x0f);//设置光标为闪烁
+ 977   7                                                      /*      temp=(miao)/10*16+(miao)%10;//秒数据写入DS1302
+ 978   7                                                              write_1302(0x8e,0x00);
+ 979   7                                                              write_1302(0x80,0x80|temp);//miao
+ 980   7                                                          write_1302(0x8e,0x80);                 */
+ 981   7                                                              break;
+ 982   7                                                              case 2:  
+ 983   7                                                              write_1602com(er+4);  //按2次fen位置显示光标   //er+0x06        
+ 984   7                                                               //write_1602com(0x0f);
+ 985   7                                                              break;
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 17  
+
+ 986   7                                                              case 3: 
+ 987   7                                                              write_1602com(er+1);   //按动3次，shi
+ 988   7                                                      //write_1602com(0x0f);
+ 989   7                                                              break;
+ 990   7                                                      //      case 4: write_1602com(yh+0x0e);//按动4次，week
+ 991   7                                                          //write_1602com(0x0f);
+ 992   7                                                      //      break;
+ 993   7                                                              case 4: write_1602com(yh+0x0a);//按动4次，ri
+ 994   7                                                           //write_1602com(0x0f);
+ 995   7                                                              break;
+ 996   7                                                              case 5: write_1602com(yh+0x07);//按动5次，yue
+ 997   7                                                           //write_1602com(0x0f);
+ 998   7                                                              break;
+ 999   7                                                              case 6: write_1602com(yh+0x04);//按动6次，nian
+1000   7                                                         //write_1602com(0x0f);
+1001   7                                                              break;
+1002   7                                                              case 0:
+1003   7                                                              write_1602com(0x0c);//按动到第7次，设置光标不闪烁
+1004   7                                                              TR0=1;//打开定时器
+1005   7                                                      temp=(miao)/10*16+(miao)%10;
+1006   7                                                              write_1302(0x8e,0x00);
+1007   7                                                              write_1302(0x80,0x00|temp);//miao数据写入DS1302
+1008   7                                                              write_1302(0x8e,0x80);
+1009   7                                              break;  
+1010   7                                                      }                                                                                                       
+1011   6                                              }
+1012   5                                      }
+1013   4                              }
+1014   3                      }
+1015   2              //------------------------------加键add----------------------------             
+1016   2                      if((setn!=0)&&(setNZn==0))//当set按下以下。再按以下键才有效（按键次数不等于零）
+1017   2                      {
+1018   3                              if(add==0)  //上调键
+1019   3                              {
+1020   4                                      delay(10);
+1021   4                                      if(add==0)
+1022   4                                      {
+1023   5                                              led1=0;
+1024   5                                              bltime=0;
+1025   5              
+1026   5                                          buzzer=0;//蜂鸣器短响一次
+1027   5                                          delay(20);
+1028   5                                          buzzer=1;
+1029   5                                              while(!add);
+1030   5                                              switch(setn)
+1031   5                                              {
+1032   6                                                      case 1:miao++;//设置键按动1次，调秒
+1033   6                                                                      if(miao>=60)
+1034   6                                                                              miao=0;//秒超过59，再加1，就归零
+1035   6                                                                      write_sfm(0x06,miao);//令LCD在正确位置显示"加"设定好的秒数
+1036   6                                                                      temp=(miao)/10*16+(miao)%10;//十进制转换成DS1302要求的DCB码
+1037   6                                                                      write_1302(0x8e,0x00); //允许写，禁止写保护 
+1038   6                                                                      write_1302(0x80,temp); //向DS1302内写秒寄存器80H写入调整后的秒数据BCD码
+1039   6                                                                      write_1302(0x8e,0x80); //打开写保护
+1040   6                                                                      write_1602com(er+7);//因为设置液晶的模式是写入数据后，光标自动右移，所以要指定返回
+1041   6                                                                      //write_1602com(0x0b);
+1042   6                                                                      break;
+1043   6                                                      case 2:fen++;
+1044   6                                                                      if(fen>=60)
+1045   6                                                                              fen=0;
+1046   6                                                                      write_sfm(0x03,fen);//令LCD在正确位置显示"加"设定好的分数据
+1047   6                                                                      temp=(fen)/10*16+(fen)%10;//十进制转换成DS1302要求的DCB码
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 18  
+
+1048   6                                                                      write_1302(0x8e,0x00);//允许写，禁止写保护 
+1049   6                                                                      write_1302(0x82,temp);//向DS1302内写分寄存器82H写入调整后的分数据BCD码
+1050   6                                                                      write_1302(0x8e,0x80);//打开写保护
+1051   6                                                                      write_1602com(er+4);//因为设置液晶的模式是写入数据后，指针自动加一，在这里是写回原来的位置
+1052   6                                                                      break;
+1053   6                                                      case 3:shi++;
+1054   6                                                                      if(shi>=24)
+1055   6                                                                              shi=0;
+1056   6                                                                      write_sfm(0x00,shi);//令LCD在正确的位置显示"加"设定好的小时数据
+1057   6                                                                      temp=(shi)/10*16+(shi)%10;//十进制转换成DS1302要求的DCB码
+1058   6                                                                      write_1302(0x8e,0x00);//允许写，禁止写保护 
+1059   6                                                                      write_1302(0x84,temp);//向DS1302内写小时寄存器84H写入调整后的小时数据BCD码
+1060   6                                                                      write_1302(0x8e,0x80);//打开写保护
+1061   6                                                                      write_1602com(er+1);//因为设置液晶的模式是写入数据后，指针自动加一，所以需要光标回位
+1062   6                                                                      break;
+1063   6                                                      /*
+1064   6                                                      case 4:week++;
+1065   6                                                                      if(week==8)
+1066   6                                                                              week=1;
+1067   6                                                          write_1602com(yh+0x0C);//指定'加'后的周数据显示位置
+1068   6                                                                              write_week(week);//指定周数据显示内容
+1069   6                                                          temp=(week)/10*16+(week)%10;//十进制转换成DS1302要求的DCB码
+1070   6                                                                      write_1302(0x8e,0x00);//允许写，禁止写保护 
+1071   6                                                                      write_1302(0x8a,temp);//向DS1302内写周寄存器8aH写入调整后的周数据BCD码
+1072   6                                                                      write_1302(0x8e,0x80);//打开写保护
+1073   6                                                                         write_1602com(yh+0x0e);//因为设置液晶的模式是写入数据后，指针自动加一，所以需要光标回位
+1074   6                                                                      break;
+1075   6                                                      */
+1076   6                                                      case 4:ri++;
+1077   6                                                                      if(ri>=32)
+1078   6                                                                              ri=1;
+1079   6                                                                      Conver_week(nian,yue,ri);
+1080   6                                                                      write_week(week);
+1081   6                                                                      write_nyr(9,ri);//令LCD在正确的位置显示"加"设定好的日期数据
+1082   6                                                                      temp=(ri)/10*16+(ri)%10;//十进制转换成DS1302要求的DCB码
+1083   6                                                                      write_1302(0x8e,0x00);//允许写，禁止写保护
+1084   6                                                                      write_1302(0x86,temp);//向DS1302内写日期寄存器86H写入调整后的日期数据BCD码
+1085   6                                                                      write_1302(0x8e,0x80);//打开写保护
+1086   6                                                                      write_1602com(yh+10);//因为设置液晶的模式是写入数据后，指针自动加一，所以需要光标回位
+1087   6                                              
+1088   6                                                                      break;
+1089   6                                                      case 5:yue++;
+1090   6                                                                      if(yue>=13)
+1091   6                                                                              yue=1;
+1092   6                                                                      Conver_week(nian,yue,ri);
+1093   6                                                                      write_week(week);
+1094   6                                                                      write_nyr(6,yue);//令LCD在正确的位置显示"加"设定好的月份数据
+1095   6                                                                      temp=(yue)/10*16+(yue)%10;//十进制转换成DS1302要求的DCB码
+1096   6                                                                      write_1302(0x8e,0x00);//允许写，禁止写保护
+1097   6                                                                      write_1302(0x88,temp);//向DS1302内写月份寄存器88H写入调整后的月份数据BCD码
+1098   6                                                                      write_1302(0x8e,0x80);//打开写保护
+1099   6                                                                      write_1602com(yh+7);//因为设置液晶的模式是写入数据后，指针自动加一，所以需要光标回位
+1100   6                                              
+1101   6                                                                      break;
+1102   6                                                      case 6:nian++;
+1103   6                                                               if(nian>=100)
+1104   6                                                                      nian=0;
+1105   6                                                                      Conver_week(nian,yue,ri);
+1106   6                                                                      write_week(week);
+1107   6                                                                      write_nyr(3,nian);//令LCD在正确的位置显示"加"设定好的年份数据
+1108   6                                                          temp=(nian)/10*16+(nian)%10;//十进制转换成DS1302要求的DCB码
+1109   6                                                                      write_1302(0x8e,0x00);//允许写，禁止写保护
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 19  
+
+1110   6                                                                      write_1302(0x8c,temp);//向DS1302内写年份寄存器8cH写入调整后的年份数据BCD码
+1111   6                                                                      write_1302(0x8e,0x80);//打开写保护
+1112   6                                                                      write_1602com(yh+4);//因为设置液晶的模式是写入数据后，指针自动加一，所以需要光标回位
+1113   6                                              
+1114   6                                                                      break;
+1115   6                                              }
+1116   5                                      }
+1117   4                      
+1118   4                              }
+1119   3                              //------------------减键dec，各句功能参照'加键'注释---------------
+1120   3                              if(dec==0)
+1121   3                              {
+1122   4                                      delay(10);//调延时，消抖动
+1123   4                                      if(dec==0)
+1124   4                                      {
+1125   5                                              led1=0;
+1126   5                                              bltime=0;
+1127   5              
+1128   5                                      buzzer=0;//蜂鸣器短响一次
+1129   5                                          delay(20);
+1130   5                                          buzzer=1;
+1131   5                                              while(!dec);
+1132   5                                              switch(setn)
+1133   5                                              {
+1134   6                                                      case 1:
+1135   6                                                              miao--;
+1136   6                                                              if(miao<0)
+1137   6                                                                      miao=59;//秒数据减到-1时自动变成59
+1138   6                                                              write_sfm(0x06,miao);//在LCD的正确位置显示改变后新的秒数
+1139   6                                                  temp=(miao)/10*16+(miao)%10;//十进制转换成DS1302要求的DCB码
+1140   6                                                              write_1302(0x8e,0x00); //允许写，禁止写保护 
+1141   6                                                              write_1302(0x80,temp); //向DS1302内写秒寄存器80H写入调整后的秒数据BCD码
+1142   6                                                              write_1302(0x8e,0x80); //打开写保护
+1143   6                                                              write_1602com(er+7);//因为设置液晶的模式是写入数据后，指针自动加一，在这里是写回原来的位置
+1144   6                                                              //write_1602com(0x0b);
+1145   6                                                              break;
+1146   6                                                      case 2:
+1147   6                                                              fen--;
+1148   6                                                              if(fen<0)
+1149   6                                                              fen=59;
+1150   6                                                              write_sfm(3,fen);
+1151   6                                                              temp=(fen)/10*16+(fen)%10;//十进制转换成DS1302要求的DCB码
+1152   6                                                              write_1302(0x8e,0x00);//允许写，禁止写保护 
+1153   6                                                              write_1302(0x82,temp);//向DS1302内写分寄存器82H写入调整后的分数据BCD码
+1154   6                                                              write_1302(0x8e,0x80);//打开写保护
+1155   6                                                              write_1602com(er+4);//因为设置液晶的模式是写入数据后，指针自动加一，在这里是写回原来的位置
+1156   6                                                              break;
+1157   6                      
+1158   6                                                      case 3:
+1159   6                                                              shi--;
+1160   6                                                              if(shi<0)
+1161   6                                                              shi=23;
+1162   6                                                              write_sfm(0,shi);
+1163   6                                                              temp=(shi)/10*16+(shi)%10;//十进制转换成DS1302要求的DCB码
+1164   6                                                              write_1302(0x8e,0x00);//允许写，禁止写保护 
+1165   6                                                              write_1302(0x84,temp);//向DS1302内写小时寄存器84H写入调整后的小时数据BCD码
+1166   6                                                              write_1302(0x8e,0x80);//打开写保护
+1167   6                                                              write_1602com(er+1);//因为设置液晶的模式是写入数据后，指针自动加一，所以需要光标回位
+1168   6                                                              break;
+1169   6                                      /*
+1170   6                                      case 4:week--;
+1171   6                                                      if(week==0)
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 20  
+
+1172   6                                                              week=7;
+1173   6                                               
+1174   6                                  write_1602com(yh+0x0C);//指定'加'后的周数据显示位置
+1175   6                                                      write_week(week);//指定周数据显示内容
+1176   6                                                 temp=(week)/10*16+(week)%10;//十进制转换成DS1302要求的DCB码
+1177   6                                              write_1302(0x8e,0x00);//允许写，禁止写保护 
+1178   6                                              write_1302(0x8a,temp);//向DS1302内写周寄存器8aH写入调整后的周数据BCD码
+1179   6                                              write_1302(0x8e,0x80);//打开写保护
+1180   6                                                 write_1602com(yh+0x0e);//因为设置液晶的模式是写入数据后，指针自动加一，所以需要光标回位
+1181   6                                              break;
+1182   6                                      */
+1183   6                                                      case 4:
+1184   6                                                              ri--;
+1185   6                                                              if(ri<=0)
+1186   6                                                              ri=31;
+1187   6                                                              Conver_week(nian,yue,ri);
+1188   6                                                              write_week(week);
+1189   6                                                              write_nyr(9,ri);
+1190   6                                                              temp=(ri)/10*16+(ri)%10;//十进制转换成DS1302要求的DCB码
+1191   6                                                              write_1302(0x8e,0x00);//允许写，禁止写保护
+1192   6                                                              write_1302(0x86,temp);//向DS1302内写日期寄存器86H写入调整后的日期数据BCD码
+1193   6                                                              write_1302(0x8e,0x80);//打开写保护
+1194   6                                                              write_1602com(yh+10);//因为设置液晶的模式是写入数据后，指针自动加一，所以需要光标回位           
+1195   6                                                              break;
+1196   6                                                      case 5:
+1197   6                                                              yue--;
+1198   6                                                              if(yue<=0)
+1199   6                                                              yue=12;
+1200   6                                                              Conver_week(nian,yue,ri);
+1201   6                                                              write_week(week);
+1202   6                                                              write_nyr(6,yue);
+1203   6                                                              temp=(yue)/10*16+(yue)%10;//十进制转换成DS1302要求的DCB码
+1204   6                                                              write_1302(0x8e,0x00);//允许写，禁止写保护
+1205   6                                                              write_1302(0x88,temp);//向DS1302内写月份寄存器88H写入调整后的月份数据BCD码
+1206   6                                                              write_1302(0x8e,0x80);//打开写保护
+1207   6                                                              write_1602com(yh+7);//因为设置液晶的模式是写入数据后，指针自动加一，所以需要光标回位
+1208   6                                      
+1209   6                                                              break;  
+1210   6                                                      case 6:
+1211   6                                                              nian--;
+1212   6                                                              if(nian<0)
+1213   6                                                              nian=99;
+1214   6                                                              Conver_week(nian,yue,ri);
+1215   6                                                              write_week(week);
+1216   6                                                              write_nyr(3,nian);
+1217   6                                                      temp=(nian)/10*16+(nian)%10;//十进制转换成DS1302要求的DCB码
+1218   6                                                              write_1302(0x8e,0x00);//允许写，禁止写保护
+1219   6                                                              write_1302(0x8c,temp);//向DS1302内写年份寄存器8cH写入调整后的年份数据BCD码
+1220   6                                                              write_1302(0x8e,0x80);//打开写保护
+1221   6                                                              write_1602com(yh+4);//因为设置液晶的模式是写入数据后，指针自动加一，所以需要光标回位
+1222   6                                                              break;
+1223   6                                                                              
+1224   6                                              }
+1225   5                                      }
+1226   4                              }
+1227   3                      }
+1228   2                      if((setNZn!=0)&&(setn==0))
+1229   2                      {
+1230   3                              if(add==0)  //上调键
+1231   3                              {
+1232   4                                      delay(10);
+1233   4                                      if(add==0)
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 21  
+
+1234   4                                      {
+1235   5                                              led1=0;
+1236   5                                              bltime=0;
+1237   5              
+1238   5                                          buzzer=0;//蜂鸣器短响一次
+1239   5                                          delay(20);
+1240   5                                          buzzer=1;
+1241   5                                              while(!add);
+1242   5                                              switch(setNZn)
+1243   5                                              {
+1244   6                                                      case 3:
+1245   6                                                              timerOn=!timerOn;                       
+1246   6                                                              write_1602com(er+13);
+1247   6                                                              if(timerOn==1)
+1248   6                                                              {
+1249   7                                                                      write_1602dat('O');
+1250   7                                                                      write_1602dat('N');
+1251   7                                                                      write_1602dat(' ');
+1252   7                                                              }
+1253   6                                                              else
+1254   6                                                              {
+1255   7                                                                      write_1602dat('O');
+1256   7                                                                      write_1602dat('F');
+1257   7                                                                      write_1602dat('F');
+1258   7                                                              }
+1259   6                                                              break;
+1260   6                                                      case 2:
+1261   6                                                              nz_fen++;
+1262   6                                                              if(nz_fen>=60)
+1263   6                                                                      nz_fen=0;
+1264   6                                                              write_sfm(10,nz_fen);//令LCD在正确位置显示"加"设定好的分数据
+1265   6                                                              write_1602com(er+11);//因为设置液晶的模式是写入数据后，指针自动加一，在这里是写回原来的位置
+1266   6                                                              break;
+1267   6                                                      case 1:
+1268   6                                                              nz_shi++;
+1269   6                                                              if(nz_shi>=24)
+1270   6                                                                      nz_shi=0;
+1271   6                                                              write_sfm(7,nz_shi);//令LCD在正确的位置显示"加"设定好的小时数据
+1272   6                                                              write_1602com(er+8);//因为设置液晶的模式是写入数据后，指针自动加一，所以需要光标回位
+1273   6                                                              break;
+1274   6                                              }
+1275   5                                              write_eeprom();                    //保存数据
+1276   5                                      }
+1277   4                      
+1278   4                              }
+1279   3                              //------------------减键dec，各句功能参照'加键'注释---------------
+1280   3                              if(dec==0)
+1281   3                              {
+1282   4                                      delay(10);//调延时，消抖动
+1283   4                                      if(dec==0)
+1284   4                                      {
+1285   5                                              led1=0;
+1286   5                                              bltime=0;
+1287   5              
+1288   5                                      buzzer=0;//蜂鸣器短响一次
+1289   5                                          delay(20);
+1290   5                                          buzzer=1;
+1291   5                                              while(!dec);
+1292   5                                              switch(setNZn)
+1293   5                                              {
+1294   6                                                      case 3:
+1295   6                                                              timerOn=!timerOn;                       
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 22  
+
+1296   6                                                              write_1602com(er+13);
+1297   6                                                              if(timerOn==1)
+1298   6                                                              {
+1299   7                                                                      write_1602dat('O');
+1300   7                                                                      write_1602dat('N');
+1301   7                                                                      write_1602dat(' ');
+1302   7                                                              }
+1303   6                                                              else
+1304   6                                                              {
+1305   7                                                                      write_1602dat('O');
+1306   7                                                                      write_1602dat('F');
+1307   7                                                                      write_1602dat('F');
+1308   7                                                              }
+1309   6                                                              break;
+1310   6                                                      case 2:
+1311   6                                                              nz_fen--;
+1312   6                                                              if(nz_fen<0)
+1313   6                                                                      nz_fen=59;
+1314   6                                                              write_sfm(10,nz_fen);
+1315   6                                                              write_1602com(er+11);//因为设置液晶的模式是写入数据后，指针自动加一，在这里是写回原来的位置
+1316   6                                                              break;
+1317   6                      
+1318   6                                                      case 1:
+1319   6                                                              nz_shi--;
+1320   6                                                              if(nz_shi<0)
+1321   6                                                              nz_shi=23;
+1322   6                                                              write_sfm(7,nz_shi);
+1323   6                                                              write_1602com(er+8);//因为设置液晶的模式是写入数据后，指针自动加一，所以需要光标回位
+1324   6                                                              break;
+1325   6                                              }
+1326   5                                              write_eeprom();                    //保存数据
+1327   5                                      }
+1328   4                              }
+1329   3                      }
+1330   2              }
+1331   1      }
+1332          
+1333          //-------------------------------
+1334          void init(void)   //定时器、计数器设置函数
+1335          {
+1336   1              TMOD=0x11;              //指定定时/计数器的工作方式为3
+1337   1              TH0=0;                  //定时器T0的高四位=0
+1338   1              TL0=0;                  //定时器T0的低四位=0
+1339   1              TH1=0x3C;
+1340   1              TL1=0xB0;
+1341   1              EA=1;                   //系统允许有开放的中断
+1342   1              ET0=1;                  //允许T0中断
+1343   1              ET1=1;
+1344   1              IT1=1;
+1345   1              IT0=0;
+1346   1              TR0=1;                  //开启中断，启动定时器
+1347   1              TR1=0;
+1348   1      }
+1349          
+1350          
+1351          void alarm(void)
+1352          {
+1353   1              if(shi==nz_shi&&fen==nz_fen&&miao==0&&NZ_sdgb==1)
+1354   1              {
+1355   2                  TR1=1;
+1356   2              }
+1357   1              if(((shi==nz_shi)&&(fen==(nz_fen+1)))||NZ_sdgb==0)
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 23  
+
+1358   1              {
+1359   2                      TR1=0;
+1360   2                      buzzer=1;
+1361   2              }
+1362   1              if((shi==nz_shi)&&(fen>nz_fen))
+1363   1              {
+1364   2                      TR1=0;
+1365   2                      buzzer=1;
+1366   2                      NZ_sdgb=1;
+1367   2              }
+1368   1      }
+1369          
+1370          
+1371          void ZD_baoshi(void)
+1372          {
+1373   1              buzzer=0;
+1374   1              delay(5);
+1375   1              buzzer=1;
+1376   1              bsn++;
+1377   1              if(bsn==temp_hour)
+1378   1              {
+1379   2                      bsn=0;
+1380   2                      baoshi=0;
+1381   2              }
+1382   1      }
+1383          
+1384          //*******************主函数**************************
+1385          //***************************************************
+1386          void main()
+1387          {
+1388   1              init_eeprom();  //开始初始化保存的数据
+1389   1              P1=0xff;
+1390   1              flag=ReadTemperature()-5;
+1391   1      //      delay(2000);
+1392   1              lcd_init();      //调用液晶屏初始化子函数
+1393   1              ds1302_init();   //调用DS1302时钟的初始化子函数
+1394   1              init();          //调用定时计数器的设置子函数
+1395   1              led1=0;           //打开LCD的背光电源
+1396   1          buzzer=0;            //蜂鸣器长响一次
+1397   1          delay(100);
+1398   1          buzzer=1;
+1399   1              init_eeprom();
+1400   1              while(1)  //无限循环下面的语句：
+1401   1              {               
+1402   2                      keyscan();      //调用键盘扫描子函数
+1403   2                      led=led1;               
+1404   2                      if(timerOn==1)
+1405   2                              alarm();        //闹钟输出
+1406   2                      if((fen==0)&&(miao==0))
+1407   2                      {
+1408   3                              if(shi>12)
+1409   3                                      temp_hour=shi-12;
+1410   3                              else
+1411   3                              {
+1412   4                                      if(shi==0)
+1413   4                                              temp_hour=12;
+1414   4                                      else
+1415   4                                              temp_hour=shi;
+1416   4                              }
+1417   3                              shangyimiao=miao;
+1418   3                              baoshi=1;
+1419   3                      }
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 24  
+
+1420   2                      if(baoshi==1)
+1421   2                      {
+1422   3                              ZD_baoshi();
+1423   3                              do 
+1424   3                                      keyscan();
+1425   3                              while(shangyimiao==miao);       
+1426   3                              shangyimiao=miao;
+1427   3                      }
+1428   2          }
+1429   1      }
+1430          void timer0() interrupt 1  //取得并显示日历和时间
+1431          {
+1432   1         //Init_DS18B20();//温度传感器DS18b2初始化子函数，在头文件中
+1433   1      //   flag=ReadTemperature();//将18b2头文件运行返回的函数结果送到变量FLAG中，用于显示
+1434   1      
+1435   1        //读取秒时分周日月年七个数据（DS1302的读寄存器与写寄存器不一样）：
+1436   1              
+1437   1          miao = BCD_Decimal(read_1302(0x81));
+1438   1              fen = BCD_Decimal(read_1302(0x83));
+1439   1              shi  = BCD_Decimal(read_1302(0x85));
+1440   1              ri  = BCD_Decimal(read_1302(0x87));
+1441   1              yue = BCD_Decimal(read_1302(0x89));
+1442   1              nian=BCD_Decimal(read_1302(0x8d));
+1443   1              //week=BCD_Decimal(read_1302(0x8b));     //不读取，直接通过日期计算得到
+1444   1              if((led1==0))
+1445   1              {
+1446   2                      if(temp_miao!=miao)
+1447   2                      {
+1448   3                              temp_miao=miao;
+1449   3                              bltime++;
+1450   3                      }
+1451   2                      if(bltime==10)
+1452   2                      {
+1453   3                              led1=1;
+1454   3                              bltime=0;
+1455   3                      }
+1456   2              }
+1457   1      
+1458   1      
+1459   1          if(T_NL_NZ==1)                                                      //显示农历
+1460   1              {
+1461   2                      uint nian_temp,temp12;
+1462   2                      temp12=nian;
+1463   2                      nian_temp=2000+(temp12&0xF0)*10+temp12&0x0F;
+1464   2                      if((nian_temp%400==0)||((nian_temp%100!=0)&&(nian_temp%4==0)))  //判断是否为闰年
+1465   2                              p_r=1;
+1466   2                      else
+1467   2                              p_r=0;
+1468   2                      Conversion(0,nian,yue,ri);
+1469   2                      write_1602com(er);//时间显示固定符号写入位置?
+1470   2                      for(a=0;a<16;a++)
+1471   2                      {
+1472   3                              if(p_r==0)
+1473   3                                      write_1602dat(nlp[a]);//写显示时间固定符号，两个冒号
+1474   3                              else 
+1475   3                                      write_1602dat(nlr[a]);
+1476   3                      }
+1477   2      
+1478   2                      write_nl(3,year_moon);//农历 年
+1479   2                      write_nl(6,month_moon);//农历 月
+1480   2                      write_nl(9,day_moon);//农历 日
+1481   2      
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 25  
+
+1482   2                      do
+1483   2                              keyscan();
+1484   2                      while(T_NL_NZ==1);
+1485   2      
+1486   2                      write_1602com(er);//时间显示固定符号写入位置，从第2个位置后开始显示
+1487   2                      for(a=0;a<16;a++)
+1488   2                      {
+1489   3                              write_1602dat(qk[a]);//写显示时间固定符号，两个冒号
+1490   3                      }
+1491   2      
+1492   2                      write_1602com(er);//时间显示固定符号写入位置，从第2个位置后开始显示
+1493   2                      for(a=0;a<8;a++)
+1494   2                      {
+1495   3                              write_1602dat(tab2[a]);//写显示时间固定符号，两个冒号
+1496   3                      }
+1497   2              }
+1498   1      
+1499   1              if(T_NL_NZ==2)                                                          //显示闹钟时间，
+1500   1              {
+1501   2                      write_1602com(er);//时间显示固定符号写入位置?
+1502   2                      for(a=0;a<16;a++)
+1503   2                              write_1602dat(NZd[a]);//写显示时间固定符号，两个冒号
+1504   2      
+1505   2                      write_sfm(7,nz_shi);//农历 年
+1506   2                      write_sfm(10,nz_fen);//农历 月
+1507   2                      write_1602com(er+13);
+1508   2                      if(timerOn==1)
+1509   2                      {
+1510   3                              write_1602dat('O');
+1511   3                              write_1602dat('N');
+1512   3                              write_1602dat(' ');
+1513   3                      }
+1514   2                      else
+1515   2                      {
+1516   3                              write_1602dat('O');
+1517   3                              write_1602dat('F');
+1518   3                              write_1602dat('F');
+1519   3                      }
+1520   2      
+1521   2                      do
+1522   2                              keyscan();
+1523   2                      while(T_NL_NZ==2);
+1524   2      
+1525   2                      write_1602com(er);//时间显示固定符号写入位置，从第2个位置后开始显示
+1526   2                      for(a=0;a<16;a++)
+1527   2                      {
+1528   3                              write_1602dat(qk[a]);//写显示时间固定符号，两个冒号
+1529   3                      }
+1530   2      
+1531   2                      write_1602com(er);//时间显示固定符号写入位置，从第2个位置后开始显示
+1532   2                      for(a=0;a<8;a++)
+1533   2                      {
+1534   3                              write_1602dat(tab2[a]);//写显示时间固定符号，两个冒号
+1535   3                      }
+1536   2              }
+1537   1              
+1538   1      
+1539   1              else
+1540   1              {       
+1541   2                      //显示温度、秒、时、分数据： 
+1542   2                      if(wd)
+1543   2                      { 
+C51 COMPILER V9.00   万年繽程序LCD1602                                                     08/19/2017 14:51:00 PAGE 26  
+
+1544   3                              flag=ReadTemperature()-5;
+1545   3                              write_temp(10,flag);//显示温度，从第二行第12个字符后开始显示
+1546   3                      }
+1547   2                      else
+1548   2                      {
+1549   3                              write_1602com(er+12);
+1550   3                              for(a=0;a<4;a++)
+1551   3                              {
+1552   4                                      write_1602dat(tm[a]);
+1553   4                              }
+1554   3                      }
+1555   2                      write_sfm(6,miao);//秒，从第二行第8个字后开始显示（调用时分秒显示子函数）
+1556   2                      write_sfm(3,fen);//分，从第二行第5个字符后开始显示
+1557   2                      write_sfm(0,shi);//小时，从第二行第2个字符后开始显示
+1558   2              }       
+1559   1                      //显示日、月、年数据：
+1560   1                      write_nyr(9,ri);//日期，从第二行第9个字符后开始显示
+1561   1                      write_nyr(6,yue);//月份，从第二行第6个字符后开始显示
+1562   1                      write_nyr(3,nian);//年，从第二行第3个字符后开始显示
+1563   1                      Conver_week(nian,yue,ri);
+1564   1                      write_week(week);
+1565   1      }
+1566          
+1567          
+1568          unsigned char count1;
+1569          
+1570          void timer1() interrupt 3  //取得并显示日历和时间
+1571          {
+1572   1              TH1=0x3C;
+1573   1              TL1=0xB0;
+1574   1      //      TR1=1;
+1575   1              count1++;
+1576   1              if(count1==10)
+1577   1              {
+1578   2                      count1=0;
+1579   2                      buzzer=!buzzer;
+1580   2              }
+1581   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   4346    ----
+   CONSTANT SIZE    =    718    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     26      20
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      6       3
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

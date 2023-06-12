@@ -1,0 +1,96 @@
+C51 COMPILER V9.00   DISPLAY                                                               02/23/2018 16:15:23 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE DISPLAY
+OBJECT MODULE PLACED IN display.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE display.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*********************************************************************************
+   2          * 【作    者】：        清翔电子:向量
+   3          * 【版    本】：        V1.0
+   4          * 【网    站】：        http://www.qxmcu.com/ 
+   5          * 【淘宝店铺】：        http://qxmcu.taobao.com/
+   6          * 【实验平台】：        清翔 QX-MCS51 单片机开发板
+   7          * 【外部晶振】：        11.0592mhz      
+   8          * 【主控芯片】：        STC89C52
+   9          * 【编译环境】：        Keil μVisio4   
+  10          * 【程序功能】：        独立按键识别                                                                        
+  11          * 【使用说明】：        按下开发板左下角S2按键数码管值+1,最大到9
+  12                                                  按下S3按下，值减一，最小减到0
+  13          **********************************************************************************/
+  14          #include <reg52.h>
+  15          #include <intrins.h>
+  16          
+  17          #define uint unsigned int
+  18          #define uchar unsigned char
+  19          
+  20          sbit DU = P2^6;//数码管段选
+  21          sbit WE = P2^7;//数码管段选
+  22          sbit key_s2 = P3^0;//独立按键S2
+  23          sbit key_s3 = P3^1;//独立按键S3
+  24          uchar num;//数码管显示的值
+  25          
+  26          //共阴数码管段选表0-9
+  27          uchar  code tabel[]= {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F,};
+  28          
+  29          
+  30          //毫秒级延时函数定义
+  31          void delay(uint z)
+  32          {
+  33   1              uint x,y;
+  34   1              for(x = z; x > 0; x--)
+  35   1                      for(y = 114; y > 0 ; y--);              
+  36   1      } 
+  37          
+  38          void main()//main函数自身会循环
+  39          {
+  40   1              WE = 1;//打开位选锁存器
+  41   1              P0 = 0XFE; //1111 1110
+  42   1              WE = 0;//锁存位选数据
+  43   1              
+  44   1              while(1)
+  45   1              {
+  46   2                      if(key_s2 == 0)//判断S2是否被按下
+  47   2                      {
+  48   3                              delay(20);//按键消抖
+  49   3                              if(key_s2 == 0)
+  50   3                              {
+  51   4                                      if(num != 9)//如果值不等于9则+1，功能把值限定为小于9
+  52   4                                      num++;
+  53   4                                      while(!key_s2);//松手检测
+  54   4                              }       
+  55   3                      }
+C51 COMPILER V9.00   DISPLAY                                                               02/23/2018 16:15:23 PAGE 2   
+
+  56   2                      if(key_s3 == 0)//判断S3是否被按下
+  57   2                      {
+  58   3                              delay(20);//按键消抖
+  59   3                              if(key_s3 == 0)
+  60   3                              {
+  61   4                                      if(num > 0)     //如果大于0则执行减一
+  62   4                                              num--;
+  63   4                                      while(!key_s3);//松手检测
+  64   4                              }       
+  65   3                      }
+  66   2                      //松手之后刷新显示
+  67   2                      DU = 1;//打开段选锁存器
+  68   2                      P0 = tabel[num];//
+  69   2                      DU = 0;//锁存段选数据
+  70   2              }       
+  71   1      }  
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    100    ----
+   CONSTANT SIZE    =     10    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

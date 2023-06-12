@@ -1,0 +1,141 @@
+C51 COMPILER V8.08   MAIN                                                                  02/12/2016 13:26:06 PAGE 1   
+
+
+C51 COMPILER V8.08, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*NEC协议红外通信
+   2          单片机解码后通过串口以9600的比特率发送出去
+   3          */
+   4          #include <reg52.h>
+   5          /*====================================
+   6           自定义类型名
+   7          ====================================*/
+   8          typedef unsigned char INT8U;
+   9          typedef unsigned char uchar;
+  10          
+  11          typedef unsigned int INT16U;
+  12          typedef unsigned int uint;
+  13          
+  14          uchar IRtime;     //储存检测红外高低电平持续时间
+  15          uchar IRcord[4];  //储存解码后的4个字节数据
+  16          uchar IRdata[33]; //包含起始码在内的33位数据
+  17          bit IRpro_ok;     //解码后4个字节数据接收完成标志位
+  18          bit IRok;                 //33位数据接收完成标志
+  19          
+  20          //初始化定时器0，外部中断0，串口
+  21          void init()
+  22          {
+  23   1              TMOD |= 0x02;//设置定时器0工作模式2,8位自动重装
+  24   1              TL0 = TH0 = 0;//初始化定时器0寄存器，定时器0溢出一次时间为256个机器周期
+  25   1              EA = 1;//开总中断
+  26   1              ET0 = 1;//开定时器0中断
+  27   1              TR0 = 1;//启动定时器0
+  28   1      
+  29   1              IT0 = 1;//设置外部中断0跳变沿触发方式
+  30   1              EX0 = 1;//开外部中断0中断
+  31   1      
+  32   1              TMOD |= 0x20;//设置定时器1工作模式2 ,8位自动重装
+  33   1              TL1 = TH1 = 0xfd;//比特率9600
+  34   1              SM1 =  1;//设置串口工作模式1,10位异步收发
+  35   1              TR1= 1;  //启动定时器1
+  36   1      }
+  37          
+  38          //定时器0中断，每中断一次需要256*1.085us =  277.76us
+  39          void time0() interrupt 1
+  40          {
+  41   1              IRtime++;//277.76us
+  42   1      }
+  43          
+  44          //外部中断0 存入33次脉宽
+  45          void int0() interrupt 0
+  46          {
+  47   1              static uchar i;//静态变量用于存入33次数据计数
+  48   1              static bit startflag;//开始储存脉宽标志位
+  49   1              if(startflag)
+  50   1              {
+  51   2                      /*判断引导码，如果是引导码则从起始码开始存*/
+  52   2                      if((IRtime < 53) && (IRtime >= 32))     i = 0;
+  53   2                      IRdata[i] = IRtime;//以TO溢出的次数来计算脉宽把这个时间存放在数组中
+  54   2                      IRtime = 0;//计数清零
+  55   2                      i++;//计数脉宽存入次数自加
+C51 COMPILER V8.08   MAIN                                                                  02/12/2016 13:26:06 PAGE 2   
+
+  56   2                      if(i == 33)        //i等于33那么就表示已经存入了33次脉宽
+  57   2                      {
+  58   3                              IRok = 1; //脉宽检查完成
+  59   3                              i = 0;    //把脉宽计数清零准备下次存入
+  60   3                      }
+  61   2              }
+  62   1              else
+  63   1              {
+  64   2                      IRtime = 0;       //定时器0计数清零
+  65   2                      startflag = 1;//开始处理标志位置1
+  66   2              }
+  67   1      
+  68   1      }
+  69          
+  70          //把提取的33次脉宽进行解码 NEC协议
+  71          void IRcordpro()
+  72          {
+  73   1              uchar i;//i是用于计数处理4个字节
+  74   1              uchar j;//j用于计数处理1个字节的8位数据
+  75   1              uchar k;//k用于计数处理33次脉宽
+  76   1              k = 1;//从第一位脉宽开始处理，丢掉起始码
+  77   1              for(i = 0; i < 4; i++)
+  78   1              {
+  79   2                      for(j = 0; j < 8; j++)
+  80   2                      {
+  81   3                              //如果脉宽大于数据0标准的1125us那么就判定为数据1
+  82   3                              if(IRdata[k] > 5) IRcord[i] |= 0x80;//写1
+  83   3                              //只能右移7次，如果右移8次则会把第一位数据移出去
+  84   3                              if(j < 7) IRcord[i] >>= 1;
+  85   3                              k++; //处理下一次脉宽
+  86   3                      }
+  87   2              }
+  88   1              IRpro_ok = 1;//解码完成
+  89   1      }
+  90          
+  91          void main()
+  92          {
+  93   1              uchar i; //计数串口发送字节数
+  94   1              init();//初始化
+  95   1              while(1)
+  96   1              {
+  97   2                      if(IRok)//判断33次脉宽是否提取完成
+  98   2                      {
+  99   3                              IRcordpro();//根据脉宽解码出4个字节的数据
+ 100   3                              IRok = 0;//清零脉宽检查完成标志位等待下一次脉宽检查
+ 101   3                              if(IRpro_ok)//判断解码是否完成
+ 102   3                              {
+ 103   4                                      for(i = 0; i < 4; i++) //串口发送4个字节数据
+ 104   4                                      {
+ 105   5                                              SBUF = IRcord[i]; //发送数据
+ 106   5                                              while(!TI);               //等待发送完成标志
+ 107   5                                              TI = 0;                   //清零发送完成标志位
+ 108   5                                      }
+ 109   4                                      IRpro_ok = 0;//清零解码标志位   
+ 110   4                              }
+ 111   3                      }
+ 112   2              }
+ 113   1      
+ 114   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+C51 COMPILER V8.08   MAIN                                                                  02/12/2016 13:26:06 PAGE 3   
+
+   CODE SIZE        =    190    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     39    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

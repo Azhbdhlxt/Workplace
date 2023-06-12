@@ -1,0 +1,31 @@
+C51 COMPILER V8.08   LED                                                                   02/11/2018 19:21:22 PAGE 1   
+
+
+C51 COMPILER V8.08, COMPILATION OF MODULE LED
+OBJECT MODULE PLACED IN led.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE led.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include <reg52.h> //引用51头文件
+   2          
+   3          sbit LED5 = P1^4;
+   4          
+   5          void main()
+   6          {
+   7   1              LED5 = 0;//点亮LED5             
+   8   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =      3    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

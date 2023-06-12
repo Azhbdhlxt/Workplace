@@ -1,0 +1,21 @@
+<html>
+<body>
+<pre>
+<h1>礦ision Build Log</h1>
+<h2>Project:</h2>
+C:\Users\Administrator.SKY-20170728WPX\Desktop\9、视频教程\课程例程源码\枚举变量的定义与引用\enum.uvproj
+Project File Date:  08/18/2017
+
+<h2>Output:</h2>
+Build target 'Target 1'
+compiling main.c...
+linking...
+Program Size: data=31.1 xdata=0 code=1309
+creating hex file from "enum"...
+"enum" - 0 Error(s), 0 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+Program Size: data=31.1 xdata=0 code=1309
+creating hex file from "enum"...
+"enum" - 0 Error(s), 0 Warning(s).

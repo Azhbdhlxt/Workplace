@@ -1,0 +1,9 @@
+"..\output\main.obj",
+"..\output\LCD1602.obj",
+"..\output\app.obj",
+"..\output\DS1302.obj",
+"..\output\DS18B20.obj",
+"..\output\Key_Buzzer.obj",
+"..\output\lunar.obj" 
+TO "..\output\Timer" 
+PRINT(".\Timer.m51") RAMSIZE(256) 

@@ -1,0 +1,167 @@
+C51 COMPILER V8.08   MAIN                                                                  09/05/2015 21:41:46 PAGE 1   
+
+
+C51 COMPILER V8.08, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /**********************************************************************
+   2          ---------------------自学习型万能红外遥控器----------------------------
+   3          WEB                     ：WWW.QXMCU.COM
+   4          测试单片机      ：STC89C52RC
+   5          外部晶振        ：11.0592M
+   6          调试环境        ：KEIL3
+   7          调试硬件平台：使用 清翔电子科技 QX-MCS51单片机开发板测试通过
+   8          开发板人员      ：朱艳梅
+   9          日期            ：2014-8-8
+  10          文件名          ：main.c
+  11          
+  12                  //-------------------------程序功能-------------------------//  
+  13                  使用 清翔QX-MCS51单片机开发板实现一个自学习型万能红外遥控器，
+  14                  LCD1602实时显示键值和状态（数值以16进制显示）。
+  15          功能主要分为学习红外遥控板键值波形并保存至清翔QX-MCS51单片机开发板上
+  16          EEPROM（AT24C02）中，和从EEPROM读取学习的键值码波形原样发送两部分。
+  17                  
+  18                  //---------------------------备注---------------------------//
+  19                  因键盘上按键S14、S15、S16、S17、S4和红外接收头外部中断P32
+  20          引脚相连，所以在使用过程中以上按键不做学习和发送使用！
+  21          
+  22                  //-------------------------使用说明-------------------------//
+  23                  清翔QX-MCS51单片机开发板上电或复位后程序默认为学习键值码波形模式，
+  24                  通过按键S2可以选择为学习模式，S3可以选择为发送模式。
+  25          工作在学习模式时：先按需要学习的红外遥控板上的按键，这时按键用户码和按
+  26          键码将会显示在LCD1602的第二行，然后在按键开发板上的按键来学习此键值并保
+  27          存到EEPROM中，学习保存成功LCD1602的0x8E地址将会显示01（01表示成功，00表
+  28          示失败）。
+  29          
+  30          工作在发射模式时：按下开发板上按键LCD1602第一行会显示发送的键值码
+  31          第二行显示按键码与是否发送成功 （01表示成功，00表示失败。地址0XC5上显示）
+  32          **********************************************************************/
+  33          #include "qxmcs51_config.h"//清翔QX-MCS51单片机开发板配置文件
+  34          #include "delay.h"                 
+  35          #include "LCD1602.h"
+  36          #include "IR_TX_RX.H"
+  37          #include "KeyScan.h"
+  38          #include "IIC_AT24.h"                   
+  39          //-------------------------------------------
+  40          //工程包含文件
+  41          //main.c
+  42          //delay.c
+  43          //LCD1602.c
+  44          //IR_TX_RX.c
+  45          //IIC_AT24.c
+  46          //KeyScan.c
+  47          //-------------------------------------------
+  48          
+  49          /**/
+  50          extern BOOL IR_RX_Finish;       //红外是否接收完成（完成=1，非=0）
+  51          extern BOOL     KeyPro_OK;              //按键处理是否完成（完成=1，非=0）
+  52          extern BOOL     TorR_Mod;               //发送和学习模式选择（1发送，0接收）
+  53          extern INT8U IR_RX_CODE[4];     //IR编码接收数组
+  54          extern INT8U IR_TX_CODE[4];     //IR编程发送数组
+  55          
+C51 COMPILER V8.08   MAIN                                                                  09/05/2015 21:41:46 PAGE 2   
+
+  56          /*主函数*/
+  57          void main()
+  58          {
+  59   1              INT8U Temp_Key; //存放按键处理值
+  60   1              BOOL I2C_OK;    //I2C读写是否成功（1成功，0失败）
+  61   1              LCD1602_Init(); //LCD1602初始化
+  62   1              IR_TX_RX_Init();//IR发送、接收初始化
+  63   1              I2C_Init();             //I2C初始化
+  64   1              Delay_Ms(50);
+  65   1              LCD1602_Write_String(0, 0, "Welcome to use!"); 
+  66   1              LCD1602_Write_String(0, 1, "IR Remote Module"); //欢迎文字
+  67   1              Delay_Ms(5000); //5秒延时
+  68   1              LCD1602_Clear();//LCD1602清屏
+  69   1              LCD1602_Write_String(0, 0, "Switch Mode!"); 
+  70   1              LCD1602_Write_String(0, 1, "Default CopyMode"); //功能选择提示文字
+  71   1              while(1)
+  72   1              {
+  73   2                      if (IR_RX_Finish) //IR是否接收完成
+  74   2                      {
+  75   3                              IR_RX_Finish = 0;
+  76   3                              LCD1602_Clear();
+  77   3                              /*LCD1602以16进制显示IR接收到的用户名与键值码*/
+  78   3                              LCD1602_Write_String(0, 1, INT8UtostrHEX(IR_RX_CODE[0]));
+  79   3                              LCD1602_Write_String(3, 1, INT8UtostrHEX(IR_RX_CODE[1]));
+  80   3                              LCD1602_Write_String(7, 1, INT8UtostrHEX(IR_RX_CODE[2]));
+  81   3                              LCD1602_Write_String(10, 1, INT8UtostrHEX(IR_RX_CODE[3]));
+  82   3                      }
+  83   2                      Temp_Key = KeyPro();//提取按键处理值
+  84   2                      if (KeyPro_OK)          //按键处理是否成功
+  85   2                      {
+  86   3                              KeyPro_OK = 0;
+  87   3                              if (TorR_Mod)   //是否选择为发送模式
+  88   3                              {
+  89   4                                      if(Temp_Key != 0xfd)    //非选择模式按键按下(S3,发送模式)
+  90   4                                      {
+  91   5                                              do
+  92   5                                              {
+  93   6                                                      I2C_OK = I2C_ReadData(Temp_Key);
+  94   6                                              }while(!I2C_OK);//等待I2C读取发送码成功
+  95   5                                              Transmit_TR_CODE();//发送红外编码
+  96   5                                              LCD1602_Clear();
+  97   5                                              LCD1602_Write_String(0, 1, INT8UtostrHEX(Temp_Key));//显示学习按键值
+  98   5                                              LCD1602_Write_String(5, 1, INT8UtostrHEX(I2C_OK));      //显示成功读取IR_TX_CODE
+  99   5                                              /*LEC1602以16进制显示从I2C取出的IR_TX_CODE*/
+ 100   5                                              LCD1602_Write_String(0, 0, INT8UtostrHEX(IR_TX_CODE[0]));
+ 101   5                                              LCD1602_Write_String(3, 0, INT8UtostrHEX(IR_TX_CODE[1]));
+ 102   5                                              LCD1602_Write_String(7, 0, INT8UtostrHEX(IR_TX_CODE[2]));
+ 103   5                                              LCD1602_Write_String(10, 0, INT8UtostrHEX(IR_TX_CODE[3]));
+ 104   5                                      }
+ 105   4                                      else   //选择模式按键按下(S3)
+ 106   4                                      {
+ 107   5                                              LCD1602_Clear();
+ 108   5                                              LCD1602_Write_String(0, 0, "IR Transmit Mode");
+ 109   5                                              LCD1602_Write_String(3, 1, "Please Key!");      
+ 110   5                                      }       
+ 111   4                              }
+ 112   3                              else
+ 113   3                              {
+ 114   4                                      if(Temp_Key != 0xfe)    //非选择模式按键按下(S2，学习模式)
+ 115   4                                      {
+ 116   5                                              LCD1602_Clear();
+ 117   5                                              LCD1602_Write_String(14, 1, INT8UtostrHEX(Temp_Key));//显示按键值
+C51 COMPILER V8.08   MAIN                                                                  09/05/2015 21:41:46 PAGE 3   
+
+ 118   5                                              do
+ 119   5                                              {
+ 120   6                                                      I2C_OK = I2C_WriteData(Temp_Key);
+ 121   6                                              }while(!I2C_OK);//等待将接收红外码存入I2C成功
+ 122   5                                              LCD1602_Write_String(14, 0, INT8UtostrHEX(I2C_OK));     //显示存入成功
+ 123   5                                              Delay_Ms(100);
+ 124   5                                              /*从I2C读取刚存入的IR学习码*/
+ 125   5                                              I2C_ReadData(Temp_Key);
+ 126   5                                              LCD1602_Write_String(0, 0, INT8UtostrHEX(IR_TX_CODE[0]));
+ 127   5                                              LCD1602_Write_String(3, 0, INT8UtostrHEX(IR_TX_CODE[1]));
+ 128   5                                              LCD1602_Write_String(7, 0, INT8UtostrHEX(IR_TX_CODE[2]));
+ 129   5                                              LCD1602_Write_String(10, 0, INT8UtostrHEX(IR_TX_CODE[3]));
+ 130   5                                      }
+ 131   4                                      else     //选择模式按键按下(S2，学习模式)
+ 132   4                                      {
+ 133   5                                              LCD1602_Clear();
+ 134   5                                              LCD1602_Write_String(0, 0, "IRcode Copy Mode");
+ 135   5                                              LCD1602_Write_String(0, 1, "Please In IRcode"); 
+ 136   5                                      }
+ 137   4                              } 
+ 138   3                      }
+ 139   2              }
+ 140   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    407    ----
+   CONSTANT SIZE    =    126    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

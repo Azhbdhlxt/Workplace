@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"万年历程序lcd1602.obj" 
+TO "wnl" 
+RAMSIZE(256) 

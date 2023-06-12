@@ -1,0 +1,145 @@
+C51 COMPILER V9.00   MAIN                                                                  02/23/2018 16:51:32 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*
+   2          定时器0工作模式1 16位定时计数
+   3          数码管动态显示0-10，每隔1秒显示一次
+   4          */
+   5          /*********************************************************************************
+   6          * 【作    者】：        清翔电子:向量
+   7          * 【版    本】：        V1.0
+   8          * 【网    站】：        http://www.qxmcu.com/ 
+   9          * 【淘宝店铺】：        http://qxmcu.taobao.com/
+  10          * 【实验平台】：        清翔 QX-MCS51 单片机开发板
+  11          * 【外部晶振】：        11.0592mhz      
+  12          * 【主控芯片】：        STC89C52
+  13          * 【编译环境】：        Keil μVisio4   
+  14          * 【程序功能】：        定时器0工作模式1 16位定时计数，中断方式响应。
+  15                                                  三位数码管动态扫描，定时器0中断方式扫描。                                                                           
+  16          * 【使用说明】：        按下S2按键数码管值加一，最大加到120.
+  17                                                  按下S3数码管值减一，最小减到0.
+  18          **********************************************************************************/
+  19          #include <reg52.h>
+  20          #include <intrins.h>
+  21          
+  22          #define uint unsigned int
+  23          #define uchar unsigned char
+  24          
+  25          sbit DU = P2^6;//数码管段选
+  26          sbit WE = P2^7;//数码管段选
+  27          sbit key_s2 = P3^0;//独立按键S2
+  28          sbit key_s3 = P3^1;//独立按键S3
+  29          uchar num;//数码管显示的值
+  30          uchar mSec, Sec;//毫秒和秒储存变量
+  31          
+  32          //共阴数码管段选表0-9
+  33          uchar code SMGduan[]= {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F,};
+  34          //数码管位选码
+  35          uchar code SMGwei[] = {0xfe, 0xfd, 0xfb};
+  36          
+  37          /*====================================
+  38          函数    ： delay(uint z)
+  39          参数    ：z 延时毫秒设定，取值范围0-65535
+  40          返回值  ：无
+  41          描述    ：12T/Fosc11.0592M毫秒级延时
+  42          ====================================*/
+  43          void delay(uint z)
+  44          {
+  45   1              uint x,y;
+  46   1              for(x = z; x > 0; x--)
+  47   1                      for(y = 114; y > 0 ; y--);              
+  48   1      } 
+  49          
+  50          /*====================================
+  51          函数    ：display(uchar i)
+  52          参数    ：i 显示数值，取值范围0-255
+  53          返回值  ：无
+  54          描述    ：三位共阴数码管动态显示
+  55          ====================================*/
+C51 COMPILER V9.00   MAIN                                                                  02/23/2018 16:51:32 PAGE 2   
+
+  56          void display(uchar i)
+  57          {
+  58   1              static uchar wei;               
+  59   1              P0 = 0XFF;//清除断码
+  60   1              WE = 1;//打开位选锁存器
+  61   1              P0 = SMGwei[wei];
+  62   1              WE = 0;//锁存位选数据
+  63   1              switch(wei)
+  64   1              {
+  65   2                      case 0: DU = 1; P0 = SMGduan[i / 100]; DU = 0; break;
+  66   2                      case 1: DU = 1; P0 = SMGduan[i % 100 / 10]; DU = 0; break;      
+  67   2                      case 2: DU = 1; P0 = SMGduan[i % 10]; DU = 0; break;            
+  68   2              }
+  69   1              wei++;
+  70   1              if(wei == 3)
+  71   1                      wei = 0;
+  72   1      }
+  73          //定时器0初始化
+  74          void timer0Init()
+  75          {
+  76   1              EA = 1; //打开总中断
+  77   1              ET0 = 1;//打开定时器0中断
+  78   1              TR0 = 1;         //启动定时器0
+  79   1              TMOD = 0X01; //定时器工作模式1，16位定时模式
+  80   1              TH0 = 0xED;
+  81   1              TL0 = 0xFF; //定时5ms
+  82   1      }
+  83          
+  84          void main()//main函数自身会循环
+  85          {       
+  86   1              timer0Init();//定时器0初始化
+  87   1              while(1)
+  88   1              {
+  89   2                      if(key_s2 == 0)//判断S2是否被按下
+  90   2                      {
+  91   3                              delay(20);//按键消抖
+  92   3                              if(key_s2 == 0)
+  93   3                              {
+  94   4                                      if(num != 120)
+  95   4                                      num++;
+  96   4                                      while(!key_s2);//松手检测
+  97   4                              }       
+  98   3                      }
+  99   2                      if(key_s3 == 0)//判断S3是否被按下
+ 100   2                      {
+ 101   3                              delay(20);//按键消抖
+ 102   3                              if(key_s3 == 0)
+ 103   3                              {
+ 104   4                                      if(num > 0)
+ 105   4                                              num--;
+ 106   4                                      while(!key_s3);//松手检测
+ 107   4                              }       
+ 108   3                      }
+ 109   2              }       
+ 110   1      } 
+ 111          
+ 112          //定时器0中断函数
+ 113          void timer0() interrupt 1
+ 114          {
+ 115   1              TH0 = 0xED;
+ 116   1              TL0 = 0xFF; //定时5ms
+ 117   1              display(num); //数码管显示函数  
+C51 COMPILER V9.00   MAIN                                                                  02/23/2018 16:51:32 PAGE 3   
+
+ 118   1      } 
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    217    ----
+   CONSTANT SIZE    =     13    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      4    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

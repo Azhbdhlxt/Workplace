@@ -1,0 +1,92 @@
+C51 COMPILER V9.00   MAIN                                                                  08/17/2017 19:45:52 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*
+   2          ****************结构体指针作为函数参数************************
+   3          打开串口后比特率设置为9600
+   4          接收模式为文本模式
+   5          */
+   6          #include <reg52.h>
+   7          #include <stdio.h>
+   8          
+   9          struct date{ //定义结构体类型
+  10                  unsigned int year;
+  11                  unsigned char month, day;       
+  12          };
+  13          /*毫秒级延时函数*/
+  14          void Delay_Ms(unsigned int z)
+  15          {
+  16   1              unsigned int x,y;
+  17   1              for(x = z; x > 0; x--)
+  18   1                      for(y = 114; y > 0 ; y--);
+  19   1      }       
+  20          /*串口初始化，比特率9600*/
+  21          void UART_Init()
+  22          {
+  23   1              TMOD |= 0x20;   //T1工作模式2  8位自动重装
+  24   1              TH1 = 0xfd;
+  25   1              TL1 = 0xfd;     //比特率9600
+  26   1              TR1 = 1;                //启动T1定时器
+  27   1              SM0 = 0;
+  28   1              SM1 = 1;                //串口工作方式1 10位异步
+  29   1      }
+  30          
+  31          void SetDate(struct date *dat)
+  32          {
+  33   1              dat->year = 2017;
+  34   1              dat->month = 5;
+  35   1              dat->day  = 13;         
+  36   1      }
+  37          
+  38          void main()
+  39          {
+  40   1              struct date d1;//定义结构体变量
+  41   1              struct date *pd1;//定义结构体指针变量
+  42   1              UART_Init(); //串口初始化
+  43   1              TI = 1;//使用printf()puts()前都应软件置位TI = 1；
+  44   1              pd1 = &d1;//指向结构体变量d1
+  45   1              SetDate(pd1);//结构体指针作为函数参数
+  46   1              while(1)
+  47   1              {
+  48   2                      /*在Keil C51中用printf输出一个单字节数据时要使用%bd,输出十六位数据要用%hd，输出三十二位数据%ld*/
+  49   2                      printf(" year: %hd \n month: %bd \n day: %bd \n", d1.year, d1.month, d1.day);
+  50   2                      Delay_Ms(5000);//5秒发送一次
+  51   2              }       
+  52   1      }
+  53          /*************************************
+  54          备注：
+  55          使用printf()puts()前都应软件置位TI = 1；
+C51 COMPILER V9.00   MAIN                                                                  08/17/2017 19:45:52 PAGE 2   
+
+  56          printf()puts()  使用putchar函数发送字节
+  57          
+  58          void putchar(uchar sbyte )
+  59          {
+  60              while(！TI);   //等待发送完
+  61          
+  62              SBUF=sbyte;
+  63          
+  64          }
+  65          
+  66          所第调用putchar前没TI=1 永远等待
+  67          *************************************/
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    114    ----
+   CONSTANT SIZE    =     37    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

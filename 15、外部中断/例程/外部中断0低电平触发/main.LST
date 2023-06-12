@@ -1,0 +1,91 @@
+C51 COMPILER V9.00   MAIN                                                                  02/23/2018 16:32:56 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*********************************************************************************
+   2          * 【作    者】：        清翔电子:向量
+   3          * 【版    本】：        V1.0
+   4          * 【网    站】：        http://www.qxmcu.com/ 
+   5          * 【淘宝店铺】：        http://qxmcu.taobao.com/
+   6          * 【实验平台】：        清翔 QX-MCS51 单片机开发板
+   7          * 【外部晶振】：        11.0592mhz      
+   8          * 【主控芯片】：        STC89C52
+   9          * 【编译环境】：        Keil μVisio4   
+  10          * 【程序功能】：        外部中断0低电平触发方式，每按下一次S2按键就会进入一次中断，
+  11                                                  LED灯会发生状态变化。                                                                       
+  12          * 【使用说明】：        用1根杜邦线把P32和P37相接，每按下一次S2按键就会进入一次中断。
+  13          **********************************************************************************/
+  14          #include <reg52.h>
+  15          
+  16          #define uint unsigned int
+  17          #define uchar unsigned char
+  18          
+  19          sbit key_s2 = P3^0;//独立按键S2
+  20          sbit flag = P3^7; //外部中断信号产生脚
+  21          
+  22          /*====================================
+  23          函数    ： delay(uint z)
+  24          参数    ：z 延时毫秒设定，取值范围0-65535
+  25          返回值  ：无
+  26          描述    ：12T/Fosc11.0592M毫秒级延时
+  27          ====================================*/
+  28          void delay(uint z)
+  29          {
+  30   1              uint x,y;
+  31   1              for(x = z; x > 0; x--)
+  32   1                      for(y = 114; y > 0 ; y--);              
+  33   1      } 
+  34          //外部中断0初始化
+  35          void int0Init()
+  36          {
+  37   1              EA = 1; //开总中断
+  38   1              EX0 = 1;//开外部中断0
+  39   1              IT0 = 0;//外部中断0低电平触发   
+  40   1      }
+  41          
+  42          void main()//main函数自身会循环
+  43          {
+  44   1              int0Init();//外部中断0初始化    
+  45   1              while(1)
+  46   1              {
+  47   2                      if(key_s2 == 0)//判断S2是否被按下
+  48   2                      {
+  49   3                              delay(20);//按键消抖
+  50   3                              if(key_s2 == 0)
+  51   3                              {
+  52   4                                      flag = 0;
+  53   4                                      flag = 0;//产生低电平，CPU会采样2次P3.2的状态,两次都为低才触发
+  54   4                                      flag = 1;//结束低电平
+  55   4                                      while(!key_s2);//松手检测
+C51 COMPILER V9.00   MAIN                                                                  02/23/2018 16:32:56 PAGE 2   
+
+  56   4                              }       
+  57   3                      }
+  58   2      
+  59   2              }       
+  60   1      }
+  61          
+  62          //外部中断1中断服务程序
+  63          void int0() interrupt 0
+  64          {
+  65   1              P1 = ~P1;//P1的状态按位取反
+  66   1      }  
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     68    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
