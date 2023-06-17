@@ -1,0 +1,4 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj" 
+TO ".\Objects\串转并" 
+PRINT(".\Listings\串转并.m51")

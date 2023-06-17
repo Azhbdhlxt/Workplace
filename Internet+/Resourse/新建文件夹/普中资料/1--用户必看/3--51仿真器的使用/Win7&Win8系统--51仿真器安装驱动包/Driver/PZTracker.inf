@@ -1,0 +1,123 @@
+
+[Version]
+Signature = "$Windows NT$"
+Class = USBDevices
+ClassGuid= {a503e2d3-a031-49dc-b684-c99085dbfe92}
+
+Provider = %MFGNAME%
+DriverVer=05/16/2016,1.0.0.0
+CatalogFile=PZTracker.cat	
+			     
+;------------------------------------------------------------------------------
+; ========== Manufacturer/Models sections ===========
+;------------------------------------------------------------------------------
+[Manufacturer]
+%MFGNAME% = MyDevice_WinUSB,NTx86,NTamd64
+
+;------------------------------------------------------------------------------
+;  Vendor and Product ID Definitions
+;------------------------------------------------------------------------------
+[MyDevice_WinUSB.NTx86]
+%DESCRIPTION% =USB_Install, USB\VID_C251&PID_F101,USB\VID_10C4&PID_82CD,USB\VID_28E9&PID_029A,USB\VID_28E9&PID_02AA
+
+[MyDevice_WinUSB.NTamd64]
+%DESCRIPTION% =USB_Install, USB\VID_C251&PID_F101,USB\VID_10C4&PID_82CD,USB\VID_28E9&PID_029A,USB\VID_28E9&PID_02AA
+
+
+;=========================================================================================
+;ClassInstall32 and ClassInstall_AddReg sections used to make new device manager category.
+;=========================================================================================
+[ClassInstall32]
+AddReg=ClassInstall_AddReg
+
+[ClassInstall_AddReg]
+HKR,,,,%DEVICEMANAGERCATEGORY%
+HKR,,Icon,,"-20"
+
+
+
+; =================== Installation ===================
+
+[USB_Install]
+Include=winusb.inf
+Needs=WINUSB.NT
+
+[USB_Install.Services]
+Include=winusb.inf
+AddService=WinUSB,0x00000002,WinUSB_ServiceInstall
+
+[WinUSB_ServiceInstall]
+DisplayName     = %WinUSB_SvcDesc%
+ServiceType     = 1
+StartType       = 3
+ErrorControl    = 1
+ServiceBinary   = %12%\WinUSB.sys
+
+[USB_Install.Wdf]
+KmdfService=WINUSB, WinUsb_Install
+UmdfServiceOrder=WINUSB
+
+[WinUSB_Install]
+KmdfLibraryVersion=1.7
+
+[USB_Install.HW]
+AddReg=Dev_AddReg
+
+[Dev_AddReg]
+HKR,,DeviceInterfaceGUIDs,0x10000,"{5299a59d-f2c0-4db4-8022-d2469408a92b}"
+
+
+[USB_Install.CoInstallers]
+AddReg=CoInstallers_AddReg
+CopyFiles=CoInstallers_CopyFiles
+
+[CoInstallers_AddReg]
+HKR,,CoInstallers32,0x00010000,"WinUSBCoInstaller.dll","WUDFUpdate_01007.dll","WdfCoInstaller01007.dll,WdfCoInstaller"
+
+[CoInstallers_CopyFiles]
+WinUSBCoInstaller.dll
+WdfCoInstaller01007.dll
+WUDFUpdate_01007.dll
+
+[DestinationDirs]
+CoInstallers_CopyFiles=11
+
+; ================= Source Media Section =====================
+
+[SourceDisksNames.x86]
+1 = %DISK_NAME%,,,\i386
+
+[SourceDisksNames.amd64]
+2 = %DISK_NAME%,,,\amd64
+
+[SourceDisksFiles.x86]
+WinUSBCoInstaller.dll=1
+WdfCoInstaller01007.dll=1
+WUDFUpdate_01007.dll=1
+
+[SourceDisksFiles.amd64]
+WinUSBCoInstaller.dll=2
+WdfCoInstaller01007.dll=2
+WUDFUpdate_01007.dll=2
+
+; Copy Files section
+;------------------------------------------------------------------------------
+[_CopyFiles_sys]
+winusb.sys
+
+;************************************************* *****************************
+; Destination Directories
+;------------------------------------------------------------------------------
+[DestinationDirs]
+DefaultDestDir = 12 ; %SystemRoot%\system32\drivers
+_CopyFiles_sys = 12
+
+; =================== Strings ===================
+
+[Strings]
+MFGNAME="深圳市普中科技有限公司"
+DESCRIPTION="PZ-51Tracker"
+WinUSB_SvcDesc="WinUSB Device"
+DISK_NAME="WinUSB Device Install Disk"
+DEVICEMANAGERCATEGORY="USB Devices"
+
