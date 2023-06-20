@@ -1,0 +1,289 @@
+C51 COMPILER V9.54   MAIN                                                                  06/12/2023 12:19:52 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Program Files (x86)\keil51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PR
+                    -INT(.\Listings\main.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <Delay.h>
+   2          #include <reg51.h>
+   3          #include <lcd1602.h>
+   4          
+   5          /***********************引脚定义************************/
+   6          sbit K1=P2^3;                                   //切换。=1调整时间、=2调整闹钟、=0正常运行
+   7          sbit K2=P2^4;                                   //下一个
+   8          sbit K3=P2^5;                                   //加一
+   9          sbit K4=P2^6;                                   //减一
+  10          sbit beep=P2^7;                                 //蜂鸣器
+  11          /***********************变量定义************************/
+  12          unsigned char moshi=0;                                  //用来指示当前处在哪个功能状态
+  13          unsigned int  timer=0;                                  //系统定时变量
+  14          unsigned char miao=0,fen=10,shi=6;              //初始时间
+  15          unsigned char buzzr_fen=12,buzzr_shi=6; //闹钟时间
+  16          unsigned char two=0;                                    //指示每个功能下对应的时间
+  17          unsigned char time[]={"06:10:10"};              //当前时间显示空间
+  18          unsigned char buzzr[]={"06:12"};                //闹钟缓存
+  19          /*********************************************************
+  20          函数名称：delay
+  21          函数作用：延时函数
+  22          输入变量：unsigned int i延时时间
+  23          返回值：  无
+  24          ***********************************************************/
+  25          
+  26          /*********************************************************
+  27          函数名称：main
+  28          函数作用：主函数
+  29          输入变量：无
+  30          返回值：  无
+  31          ***********************************************************/
+  32          void main()
+  33          {
+  34   1              TMOD|=0X01;                                                     //T0工作方式1
+  35   1              TH0=0XfC;                                                       //设置初值1ms
+  36   1              TL0=0X18;       
+  37   1              ET0=1;                                                          //打开定时器0中断允许
+  38   1              EA=1;                                                           //打开总中断
+  39   1              TR0=1;                                                          //打开定时器
+  40   1              LCD_Init();                                             //LCD1602初始化
+  41   1              LCD_ShowString(1,0,"TIME:");
+  42   1              LCD_ShowString(2,0,"CLOCK:");
+  43   1              LCD_ShowString(1,5,time);                               //显示初始时间
+  44   1              LCD_ShowString(2,6,buzzr);                      //显示闹钟时间
+  45   1              LCD_WriteCommand(0x0c);                                 //关闭光标
+  46   1      while(1)                                                                //主循环
+  47   1      {
+  48   2               if(!K1)                                                        //按钮1功能切换
+  49   2               {
+  50   3               Delay(10000);                                          //延时防抖
+  51   3                        if(!K1)
+  52   3                        {
+  53   4                                      two=0;                                  //功能时间指示变量清零
+  54   4                                      if(moshi<2)                             //模式切换
+C51 COMPILER V9.54   MAIN                                                                  06/12/2023 12:19:52 PAGE 2   
+
+  55   4                                              moshi++;
+  56   4                                      else
+  57   4                                              moshi=0;
+  58   4                                      switch(moshi)                   //设置光标位置
+  59   4                                      {
+  60   5                                      case 0: LCD_WriteCommand(0x0c);//正常模式，关闭光标
+  61   5                                                      break;
+  62   5                                      case 1: LCD_WriteCommand(0x0e);//模式1，打开光标
+  63   5                                                      LCD_SetCursor(1,6);     //设置光标位置
+  64   5                                                      break;
+  65   5                                      case 2: LCD_WriteCommand(0x0e);//模式2，打开光标
+  66   5                                                      LCD_SetCursor(2,6);     //设置光标位置
+  67   5                                      }
+  68   4                        }
+  69   3                        while(!K1);                                   //等待按钮松开
+  70   3               }
+  71   2               if(moshi==1)                                           //模式1，调整时间
+  72   2               {
+  73   3                              if(!K2)                                         //下一个
+  74   3                              {
+  75   4                                 Delay(10000);                        //延时防抖
+  76   4                                      if(!K2)
+  77   4                                      {
+  78   5                                              if(two<2)
+  79   5                                                      two++;
+  80   5                                              else
+  81   5                                                      two=0;
+  82   5                                      }
+  83   4                                      if(two==0)                              //光标设置在小时位置
+  84   4                                              {
+  85   5                                              LCD_WriteCommand(0x0e);
+  86   5                                              LCD_SetCursor(1,6);
+  87   5                                              }
+  88   4                                      if(two==1)                                      //光标设置在分钟位置
+  89   4                                              {
+  90   5                                              LCD_WriteCommand(0x0e);
+  91   5                                              LCD_SetCursor(1,9);
+  92   5                                              }
+  93   4                                      if(two==2)                                      //光标设置在秒位置
+  94   4                                              {
+  95   5                                              LCD_WriteCommand(0x0e);
+  96   5                                              LCD_SetCursor(1,12);
+  97   5                                              }
+  98   4                                      while(!K2);                             //等待按钮松开
+  99   4                              }
+ 100   3                              if(two==0)
+ 101   3                                      {
+ 102   4                                      if(!K3)                                 //小时加一
+ 103   4                                              {
+ 104   5                                              Delay(10000);           //延时防抖
+ 105   5                                                      if(!K3)
+ 106   5                                                      {
+ 107   6                                                              if(shi<23)      //限制小时最大值为23
+ 108   6                                                                 shi++;       //小时加一
+ 109   6                                                              else
+ 110   6                                                                      shi=0;
+ 111   6                                                      }
+ 112   5                                              time[0]=shi/10+0x30;//计算
+ 113   5                                              time[1]=shi%10+0x30;
+ 114   5                                              LCD_ShowString(1,5,time);//显示
+ 115   5                                              LCD_SetCursor(1,6);             //保持光标位置
+ 116   5                                              while(!K3);
+C51 COMPILER V9.54   MAIN                                                                  06/12/2023 12:19:52 PAGE 3   
+
+ 117   5                                              }
+ 118   4                                       if(!K4)                                //小时减一
+ 119   4                                              {
+ 120   5                                              Delay(10000);           //延时防抖
+ 121   5                                                      if(!K4)
+ 122   5                                                      {
+ 123   6                                                              if(shi>0)
+ 124   6                                                                 shi--;
+ 125   6                                                              else
+ 126   6                                                                      shi=23;
+ 127   6                                                      }
+ 128   5                                              time[0]=shi/10+0x30;//计算
+ 129   5                                              time[1]=shi%10+0x30;
+ 130   5                                              LCD_ShowString(1,5,time);//显示
+ 131   5                                              LCD_SetCursor(1,6);
+ 132   5                                              while(!K4);
+ 133   5                                              }
+ 134   4                                      }
+ 135   3                              if(two==1)
+ 136   3                                      {
+ 137   4                                      if(!K3)                                 //分钟加一
+ 138   4                                              {
+ 139   5                                              Delay(10000);           //延时防抖
+ 140   5                                                      if(!K3)
+ 141   5                                                      {
+ 142   6                                                              if(fen<59)      //限制分钟最大值为59
+ 143   6                                                                      fen++;
+ 144   6                                                              else
+ 145   6                                                                      fen=0;
+ 146   6                                                      }
+ 147   5                                              time[3]=fen/10+0x30;//计算
+ 148   5                                              time[4]=fen%10+0x30;
+ 149   5                                              LCD_ShowString(1,5,time);//显示
+ 150   5                                              LCD_SetCursor(1,9);
+ 151   5                                              while(!K3);
+ 152   5                                              }
+ 153   4                                       if(!K4)                                //分钟减一
+ 154   4                                              {
+ 155   5                                              Delay(10000);           //延时防抖
+ 156   5                                                      if(!K4)
+ 157   5                                                      {
+ 158   6                                                              if(fen>0)
+ 159   6                                                                 fen--;
+ 160   6                                                              else
+ 161   6                                                                      fen=59;
+ 162   6                                                      }
+ 163   5                                              time[3]=fen/10+0x30;//计算
+ 164   5                                              time[4]=fen%10+0x30;
+ 165   5                                              LCD_ShowString(1,5,time);//显示
+ 166   5                                              LCD_SetCursor(1,9);
+ 167   5                                              while(!K4);
+ 168   5                                              }
+ 169   4                                      }
+ 170   3                              if(two==2)
+ 171   3                                      {
+ 172   4                                      if(!K3)                                 //秒加一
+ 173   4                                              {
+ 174   5                                              Delay(10000);           //延时防抖
+ 175   5                                                      if(!K3)
+ 176   5                                                      {
+ 177   6                                                              if(miao<59)     //限制分钟最大值为59
+ 178   6                                                                      miao++;
+C51 COMPILER V9.54   MAIN                                                                  06/12/2023 12:19:52 PAGE 4   
+
+ 179   6                                                              else
+ 180   6                                                                      miao=0;
+ 181   6                                                      }
+ 182   5                                              time[3]=miao/10+0x30;//计算
+ 183   5                                              time[4]=miao%10+0x30;
+ 184   5                                              LCD_ShowString(1,5,time);//显示
+ 185   5                                              LCD_SetCursor(1,9);
+ 186   5                                              while(!K3);
+ 187   5                                              }
+ 188   4                                       if(!K4)                                //秒减一
+ 189   4                                              {
+ 190   5                                              Delay(10000);           //延时防抖
+ 191   5                                                      if(!K4)
+ 192   5                                                      {
+ 193   6                                                              if(miao>0)
+ 194   6                                                                 miao--;
+ 195   6                                                              else
+ 196   6                                                                      miao=59;
+ 197   6                                                      }
+ 198   5                                              time[3]=miao/10+0x30;//计算
+ 199   5                                              time[4]=miao%10+0x30;
+ 200   5                                              LCD_ShowString(1,5,time);//显示
+ 201   5                                              LCD_SetCursor(1,9);
+ 202   5                                              while(!K4);
+ 203   5                                              }
+ 204   4                                      }
+ 205   3                      }
+ 206   2                      if(moshi==2)                                    //模式2，调整闹钟
+ 207   2                      {
+ 208   3                              if(!K2)                                         //下一个
+ 209   3                              {
+ 210   4                                 Delay(10000);                        //延时防抖
+ 211   4                                      if(!K2)
+ 212   4                                      {
+ 213   5                                              two=!two;                       //切换次序
+ 214   5                                      }
+ 215   4                                      if(two==0)                              //光标设置在小时
+ 216   4                                              {
+ 217   5                                              LCD_WriteCommand(0x0e); //开启光标
+ 218   5                                              LCD_SetCursor(2,6);
+ 219   5                                              }
+ 220   4                                      else                                    //光标设置在分钟
+ 221   4                                              {
+ 222   5                                              LCD_WriteCommand(0x0e); //开启光标
+ 223   5                                              LCD_SetCursor(2,9);
+ 224   5                                              }
+ 225   4                                      while(!K2);
+ 226   4                              }
+ 227   3                              if(two==0)
+ 228   3                                      {
+ 229   4                                      if(!K3)                                 //小时加一
+ 230   4                                              {
+ 231   5                                              Delay(10000);           //延时防抖
+ 232   5                                                      if(!K3)
+ 233   5                                                      {
+ 234   6                                                              if(buzzr_shi<23)//限制小时最大值为23
+ 235   6                                                                      buzzr_shi++;
+ 236   6                                                              else
+ 237   6                                                                      buzzr_shi=0;
+ 238   6                                                      }
+ 239   5                                              buzzr[0]=buzzr_shi/10+0x30;//计算
+ 240   5                                              buzzr[1]=buzzr_shi%10+0x30;
+C51 COMPILER V9.54   MAIN                                                                  06/12/2023 12:19:52 PAGE 5   
+
+ 241   5                                              LCD_ShowString(2,6,buzzr);//显示
+ 242   5                                              LCD_SetCursor(2,6);
+ 243   5                                              while(!K3);
+ 244   5                                              }
+ 245   4                                       if(!K4)                                //小时减一
+ 246   4                                              {
+ 247   5                                              Delay(10000);           //延时防抖
+ 248   5                                                      if(!K4)
+ 249   5                                                      {
+ 250   6                                                              if(buzzr_shi>0)
+ 251   6                                                                 buzzr_shi--;
+ 252   6                                                              else
+ 253   6                                                                      buzzr_shi=23;
+ 254   6                                                      }
+ 255   5                                              //buzzr[0]=buzzr_sh;
+ 256   5                                              }}
+ 257   3                                      }}}     
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    872    ----
+   CONSTANT SIZE    =     13    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     24    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

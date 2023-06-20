@@ -1,0 +1,75 @@
+C51 COMPILER V9.54   MAIN                                                                  03/29/2023 21:52:57 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Program Files (x86)\keil51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PR
+                    -INT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <REGX51.H>
+   2          #include "Delay.h"
+   3          #include "LCD1602.h"  
+   4          
+   5          void main()
+   6          {
+   7   1        unsigned char LEDNUM=0;
+   8   1        LCD_Init();
+   9   1        LCD_ShowString(1,1,"Hello world");
+  10   1      
+  11   1      /* 
+  12   1        while (1)
+  13   1             {
+  14   1               if (P3_1==0 || P3_0==0)    //若K1或K2按键按下
+  15   1               {
+  16   1                 P2_0=0;                  //LED灯输出为0，点亮
+  17   1               }
+  18   1               else
+  19   1               {
+  20   1                 P2_0=1;                  //LED灯输出1，熄灭
+  21   1               }
+  22   1             }  
+  23   1      */
+  24   1        while (1)
+  25   1        {
+  26   2          if(P3_1==0)       //若K1按键按下
+  27   2          {
+  28   3            Delay(20);      //延时消除抖动,若注释，则效果为按住K1键，在松手瞬间，LED灯会抖动
+  29   3            while(P3_1==0); //松手检测
+  30   3            Delay(20);
+  31   3            
+  32   3            P2_0=~P2_0;     //LED1取反，高电平置反
+  33   3          }
+  34   2        } 
+  35   1        
+  36   1      /*
+  37   1        while (1)
+  38   1        {
+  39   1          if(P3_1==0)       //若K1按键按下
+  40   1          {
+  41   1            Delay(20);      //延时消除抖动,若注释，则效果为按住K1键，在松手瞬间，LED灯会抖动
+  42   1            while(P3_1==0); //松手检测
+  43   1            Delay(20);      //延时消抖
+  44   1            LEDNUM++;       //变量自增
+  45   1            P2_0=~LEDNUM;     //变量取反输出给LED
+  46   1          }
+  47   1        }
+  48   1      */
+  49   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     43    ----
+   CONSTANT SIZE    =     12    ----
+C51 COMPILER V9.54   MAIN                                                                  03/29/2023 21:52:57 PAGE 2   
+
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,4 @@
+ID;Name;Start HP;Start Mana;HP/Skill;Mana/Skill;Attack Range;
+0;Warrior;15;5;1;1;300;
+1;Sorcerer;5;15;1;1;750;
+2;Rogue;10;10;1;1;750;

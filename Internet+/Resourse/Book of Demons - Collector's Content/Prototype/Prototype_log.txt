@@ -1,0 +1,227 @@
+23:18:11.0 - I. Cug::Root::CugInit -> Scope opened
+23:18:11.0 - I.  Cug::Root::App activated... 1
+23:18:11.0 - I.  Cug::DX8Graphics::Init -> Scope opened
+23:18:11.0 - I.   IsSystemXP: 0
+23:18:11.0 - I.   D3D9: Selected refreshrate: 60
+23:18:11.0 - I.   D3D9: attempting widescreen...
+23:18:11.0 - I.   Enum res: 320 x 200
+23:18:11.0 - I.   Enum res: 320 x 240
+23:18:11.0 - I.   Enum res: 400 x 300
+23:18:11.0 - I.   Enum res: 512 x 384
+23:18:11.0 - I.   Enum res: 640 x 400
+23:18:11.0 - I.   Enum res: 640 x 480
+23:18:11.0 - I.   Enum res: 800 x 600
+23:18:11.0 - I.   Enum res: 960 x 600
+23:18:11.0 - I.   Enum res: 1024 x 768
+23:18:11.0 - I.   Enum res: 1280 x 600
+23:18:11.0 - I.   Enum res: 1280 x 720
+23:18:11.0 - I.   Enum res: 1280 x 768 (PANORAMIC)
+23:18:11.0 - I.   Enum res: 1360 x 768
+23:18:11.0 - I.   Enum res: 1366 x 768
+23:18:11.0 - I.   DX9 widescreen salected: 1280 x 768 (aspect: 1.667)
+23:18:12.0 - I.   Switching to special stretch on Vista...
+23:18:12.0 - I.  Cug::DX8Graphics::Init -> Scope closed
+23:18:12.0 - I.  Audio::Init() -> Scope opened
+23:18:13.0 - I.   AL Device enumeration: Generic Software
+23:18:13.0 - I.   Default audio device: Generic Software
+23:18:14.0 - I.  Audio::Init() -> Scope closed
+23:18:14.0 - I. Cug::Root::CugInit -> Scope closed
+23:18:14.0 - I. SaveManager created
+23:18:14.0 - I. SaveManager::Load(Diablix, WIP8) ...
+23:18:14.0 - I. SaveManager: Directory Created: C:\Users\Administrator\AppData\Roaming/Diablix_WIP8
+23:18:14.0 - I. SaveManager::Load(Diablix, WIP8) ... Loading everything
+23:18:14.0 - W. SaveManager:LoadEverything - can't open file: C:\Users\Administrator\AppData\Roaming/Diablix_WIP8/general.dat
+23:18:14.0 - I. SaveManager::Load(Diablix, WIP8) ... DONE
+23:18:14.0 - I. CUG::Root->File Opened: debugfont.cug_fnt
+23:18:14.0 - I. CUG::Root->File Opened: debugfont.tga
+23:18:14.0 - I. CUG::Root->File Opened: debugfont.tga_ex
+23:18:14.0 - I. CUG::Root->File Opened: pf_big.cug_fnt
+23:18:14.0 - I. CUG::Root->File Opened: proto_gui.tga
+23:18:14.0 - I. CUG::Root->File Opened: proto_gui.tga_ex
+23:18:14.0 - I. CUG::Root->File Opened: pf_bold.cug_fnt
+23:18:14.0 - I. CUG::Root->File Opened: pf_normal.cug_fnt
+23:18:14.0 - I. CUG::Root->File Opened: data\diablix_globals.csv
+23:18:14.0 - I. CUG::Root->File Opened: textures\character.jp2
+23:18:14.0 - I. CUG::Root->File Opened: textures\character.jp2_a
+23:18:14.0 - I. CUG::Root->File Opened: textures\character.jp2_ex
+23:18:14.0 - I. CUG::Root->File Opened: textures\menu.png
+23:18:14.0 - I. CUG::Root->File Opened: textures\menu.png_ex
+23:18:14.0 - I. CUG::Root->File Opened: music\menu.ogg
+23:18:14.1 - I. CUG::Root->File Opened: frames\profile.proto_frm
+23:18:38.1 - I. CUG::Root->File Opened: click.ogg
+23:18:39.2 - I. CUG::Root->File Opened: data\diablix_cards_0.csv
+23:18:39.2 - W. Address cell in matrix data\diablix_cards_0.csv not found row -1, col -1
+23:18:39.2 - I. CUG::Root->File Opened: data\diablix_classes.csv
+23:18:39.2 - I. CUG::Root->File Opened: data\diablix_cards_1.csv
+23:18:39.2 - W. Address cell in matrix data\diablix_cards_1.csv not found row -1, col -1
+23:18:39.2 - I. CUG::Root->File Opened: data\diablix_cards_2.csv
+23:18:39.2 - W. Address cell in matrix data\diablix_cards_2.csv not found row -1, col -1
+23:18:41.1 - I. CUG::Root->File Opened: textures\gui_fill.png
+23:18:41.1 - I. CUG::Root->File Opened: textures\char_select.jp2
+23:18:41.1 - I. CUG::Root->File Opened: textures\char_select.jp2_a
+23:18:42.1 - I. CUG::Root->File Opened: textures\char_select.jp2_ex
+23:18:42.1 - I. CUG::Root->File Opened: textures\town.jp2
+23:18:42.1 - I. CUG::Root->File Opened: textures\town.jp2_a
+23:18:42.1 - I. CUG::Root->File Opened: textures\town.jp2_ex
+23:18:46.1 - I. CUG::Root->File Opened: textures\menu.png
+23:18:46.1 - I. CUG::Root->File Opened: textures\menu.png_ex
+23:18:50.0 - I. CUG::Root->File Opened: textures\gui_fill.png
+23:18:50.0 - I. CUG::Root->File Opened: textures\char_select.jp2
+23:18:50.0 - I. CUG::Root->File Opened: textures\char_select.jp2_a
+23:18:50.0 - I. CUG::Root->File Opened: textures\char_select.jp2_ex
+23:18:50.0 - I. CUG::Root->File Opened: textures\town.jp2
+23:18:50.0 - I. CUG::Root->File Opened: textures\town.jp2_a
+23:18:50.0 - I. CUG::Root->File Opened: textures\town.jp2_ex
+23:18:53.9 - I. CUG::Root->File Opened: frames\char_name.proto_frm
+23:18:59.2 - I. CUG::Root->File Opened: music\town.ogg
+23:19:00.3 - I. CUG::Root->File Opened: data\diablix_exp.csv
+23:19:05.3 - I. CUG::Root->File Opened: frames\healer.proto_frm
+23:19:06.1 - I. CUG::Root->File Opened: sfx\healing.ogg
+23:19:08.6 - I. CUG::Root->File Opened: frames\gossip_txt.cug
+23:19:09.0 - I. CUG::Root->File Opened: frames\healer.proto_frm
+23:19:12.8 - I. CUG::Root->File Opened: frames\alice.proto_frm
+23:19:13.4 - I. CUG::Root->File Opened: frames\gossip_txt.cug
+23:19:14.9 - I. CUG::Root->File Opened: frames\alice.proto_frm
+23:19:15.7 - I. CUG::Root->File Opened: frames\gypsy.proto_frm
+23:19:15.7 - I. CUG::Root->File Opened: data\diablix_card_slots.csv
+23:19:16.1 - I. CUG::Root->File Opened: frames\gypsy_charge.proto_frm
+23:19:19.6 - I. CUG::Root->File Opened: frames\gypsy.proto_frm
+23:19:20.2 - I. CUG::Root->File Opened: frames\gossip_txt.cug
+23:19:21.3 - I. CUG::Root->File Opened: frames\gypsy.proto_frm
+23:19:24.3 - I. CUG::Root->File Opened: frames\wiseman.proto_frm
+23:19:25.2 - I. CUG::Root->File Opened: frames\gossip_txt.cug
+23:19:26.3 - I. CUG::Root->File Opened: frames\wiseman.proto_frm
+23:19:28.3 - I. CUG::Root->File Opened: textures\cut_fill.png
+23:19:28.3 - I. CUG::Root->File Opened: music\crosscut.ogg
+23:19:30.8 - I. CUG::Root->File Opened: frames\flexiscope.proto_frm
+23:19:30.8 - I. Update finished - levels = 2
+23:19:30.8 - W. Parent failed to remove itself from parent list
+23:19:34.0 - I. CUG::Root->File Opened: sfx\dooropen.ogg
+23:19:37.0 - I. Creating DiabDungeon... -> Scope opened
+23:19:37.0 - I.  CUG::Root->File Opened: textures\dungeon.jp2
+23:19:37.0 - I.  CUG::Root->File Opened: textures\dungeon.jp2_a
+23:19:38.0 - I.  CUG::Root->File Opened: textures\dungeon.jp2_ex
+23:19:38.0 - I.  CUG::Root->File Opened: tilesets\tset.cug
+23:19:38.0 - I.  CUG::Root->File Opened: textures\proto_lab.jp2
+23:19:38.0 - I.  CUG::Root->File Opened: textures\proto_lab.jp2_a
+23:19:38.0 - I.  CUG::Root->File Opened: textures\proto_lab.jp2_ex
+23:19:38.0 - I.  Rebuilding connectors for tileset: tilesets\tset.cug ...
+23:19:38.0 - I.  Rebuilding connectors for tileset: tilesets\tset.cug ... DONE
+23:19:38.0 - I. Creating DiabDungeon... -> Scope closed
+23:19:38.0 - I. DiabDungeon::CreateRandomMap -> Scope opened
+23:19:38.0 - W.  Map Generation failed
+23:19:38.0 - I. DiabDungeon::CreateRandomMap -> Scope closed
+23:19:38.0 - I. DiabDungeon::CreateRandomMap -> Scope opened
+23:19:38.0 - I.  DiabDungeon::InitMapGeomStructures -> Scope opened
+23:19:38.0 - I.  DiabDungeon::InitMapGeomStructures -> Scope closed
+23:19:38.0 - I.  DiabDungeon::InitMapObjects -> Scope opened
+23:19:38.0 - I.   CUG::Root->File Opened: data\diablix_monsters.csv
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   ReadMonsterDefinition: 1 -> Scope opened
+23:19:38.0 - I.   ReadMonsterDefinition: %d -> Scope closed
+23:19:38.0 - I.   Boss count = 0
+23:19:38.0 - I.  DiabDungeon::InitMapObjects -> Scope closed
+23:19:38.0 - I. DiabDungeon::CreateRandomMap -> Scope closed
+23:19:38.0 - I. CUG::Root->File Opened: music\dungeon.ogg
+23:19:38.2 - I. CUG::Root->File Opened: sfx\prize.ogg
+23:19:40.1 - I. CUG::Root->File Opened: sfx\walk3.ogg
+23:19:40.7 - I. CUG::Root->File Opened: sfx\walk4.ogg
+23:19:40.9 - I. CUG::Root->File Opened: sfx\walk1.ogg
+23:19:41.6 - I. CUG::Root->File Opened: sfx\walk2.ogg
+23:19:41.7 - I. CUG::Root->File Opened: sfx\chest.ogg
+23:19:42.1 - I. CUG::Root->File Opened: sfx\gold.ogg
+23:19:42.3 - I. CUG::Root->File Opened: sfx\flipscrl.ogg
+23:19:43.8 - I. CUG::Root->File Opened: sfx\titlemov.ogg
+23:19:43.8 - I. CUG::Root->File Opened: effects\card_promo.cug
+23:19:43.8 - I. CUG::Root->File Opened: textures\particles.jp2
+23:19:43.8 - I. CUG::Root->File Opened: textures\particles.jp2_a
+23:19:43.8 - I. CUG::Root->File Opened: textures\particles.jp2_ex
+23:19:43.8 - I. CUG::Root->File Opened: sfx\magic.ogg
+23:19:49.7 - I. CUG::Root->File Opened: sfx\swing.ogg
+23:19:49.3 - I. CUG::Root->File Opened: sfx\sklsrh2.ogg
+23:19:50.3 - I. CUG::Root->File Opened: sfx\swing2.ogg
+23:19:51.8 - I. CUG::Root->File Opened: sfx\sklsrd1.ogg
+23:19:54.2 - I. CUG::Root->File Opened: frames\book.proto_frm
+23:19:55.2 - I. CUG::Root->File Opened: textures\menu.png
+23:19:55.2 - I. CUG::Root->File Opened: textures\menu.png_ex
+23:19:55.2 - I. CUG::Root->File Opened: sfx\questdon.ogg
+23:19:57.5 - I. CUG::Root->File Opened: sfx\fountain.ogg
+23:20:05.7 - I. CUG::Root->File Opened: sfx\sklsrh1.ogg
+23:20:09.8 - I. CUG::Root->File Opened: sfx\barrel.ogg
+23:20:18.0 - I. CUG::Root->File Opened: sfx\sklsrd2.ogg
+23:20:53.9 - I. Character A advanced dungeon level
+Cur Game = 0  Cur Level = 1
+23:20:54.9 - I. CUG::Root->File Opened: textures\cut_fill.png
+23:20:54.9 - I. CUG::Root->File Opened: textures\town.jp2
+23:20:54.9 - I. CUG::Root->File Opened: textures\town.jp2_a
+23:20:54.9 - I. CUG::Root->File Opened: textures\town.jp2_ex
+23:20:54.9 - I. CUG::Root->File Opened: music\crosscut.ogg
+23:20:57.2 - I. CUG::Root->File Opened: music\town.ogg
+23:20:58.4 - I. CUG::Root->File Opened: frames\alice.proto_frm
+23:21:00.3 - I. CUG::Root->File Opened: frames\gossip_txt.cug
+23:21:00.6 - I. CUG::Root->File Opened: frames\alice.proto_frm
+23:21:02.6 - I. CUG::Root->File Opened: frames\wiseman.proto_frm
+23:21:04.1 - I. CUG::Root->File Opened: frames\gypsy.proto_frm
+23:21:05.4 - I. CUG::Root->File Opened: frames\gypsy_charge.proto_frm
+23:21:08.5 - I. CUG::Root->File Opened: frames\gypsy.proto_frm
+23:21:15.4 - I. CUG::Root->File Opened: textures\gui_fill.png
+23:21:15.4 - I. CUG::Root->File Opened: textures\char_select.jp2
+23:21:15.4 - I. CUG::Root->File Opened: textures\char_select.jp2_a
+23:21:16.4 - I. CUG::Root->File Opened: textures\char_select.jp2_ex
+23:21:16.4 - I. CUG::Root->File Opened: music\menu.ogg
+23:21:23.5 - I. CUG::Root->File Opened: textures\menu.png
+23:21:24.5 - I. CUG::Root->File Opened: textures\menu.png_ex
+23:21:25.0 - I. Cug::Root::Close -> Scope opened
+23:21:25.0 - I. Cug::Root::Close -> Scope closed
+23:21:25.0 - I. Cug::Root::App activated... 0
+23:21:25.0 - I. Cug::Root::Release() -> Scope opened
+23:21:25.0 - I.  Destroying DiabDungeon... -> Scope opened
+23:21:25.0 - I.  Destroying DiabDungeon... -> Scope closed
+23:21:25.0 - I.  Releasing resource manager for class: ParticleEffect
+23:21:25.0 - W.   - 1 resources still referenced
+23:21:25.0 - I.  Releasing resource manager for class: DiabTileset
+23:21:25.0 - I.  Releasing resource manager for class: DataMatrix
+23:21:25.0 - W.   - 8 resources still referenced
+23:21:25.0 - I.  Releasing resource manager for class: Texture
+23:21:25.0 - I.  Releasing resource manager for class: Font
+23:21:25.0 - I.  Releasing resource manager for class: Sound
+23:21:25.0 - W.   - 22 resources still referenced
+23:21:25.0 - I.  Cug::DX8Graphics::ShutDown -> Scope opened
+23:21:25.0 - I.  Cug::DX8Graphics::ShutDown -> Scope closed
+23:21:25.0 - I. Cug::Root::Release() -> Scope closed
+23:21:25.0 - I. DiabProfile::~DiabProfile() -> Scope opened
+23:21:25.0 - I. DiabProfile::~DiabProfile() -> Scope closed
+23:21:25.0 - I. Cug::Root::~Root -> Destroying log outputs

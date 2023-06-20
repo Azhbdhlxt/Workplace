@@ -1,0 +1,95 @@
+C51 COMPILER V9.54   INDEPENDENTKEY                                                        03/28/2023 21:28:42 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE INDEPENDENTKEY
+OBJECT MODULE PLACED IN .\Objects\IndependentKey.obj
+COMPILER INVOKED BY: C:\Program Files (x86)\keil51\C51\BIN\C51.EXE IndependentKey.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJEC
+                    -TEXTEND PRINT(.\Listings\IndependentKey.lst) TABS(2) OBJECT(.\Objects\IndependentKey.obj)
+
+line level    source
+
+   1          #include <REGX51.H>
+   2          
+   3          #include "Delay.h"
+   4          unsigned char KeyNum;
+   5          unsigned char IndependentKey()
+   6          {
+   7   1        P2=0xFF;
+   8   1        
+   9   1        /*
+  10   1        P3=~0x01;//默认高电平
+  11   1        do{if (P3_1==0){Delay(20);while (P3_1==0);
+  12   1        Delay(20);KeyNum=17;}
+  13   1        if (P3_0==0){Delay(20);while (P3_0==0);
+  14   1        Delay(20);KeyNum=18;}
+  15   1        if (P3_2==0){Delay(20);while (P3_2==0);
+  16   1        Delay(20);KeyNum=19;}
+  17   1        if (P3_3==0){Delay(20);while (P3_3==0);
+  18   1        Delay(20);KeyNum=20;}
+  19   1      }while(1);*/
+  20   1        
+  21   1        while(1)
+  22   1        {
+  23   2          if(P3_1==0)     //??K1????
+  24   2          {
+  25   3            Delay(20);
+  26   3            while(P3_1==0);
+  27   3            Delay(20);
+  28   3            KeyNum=17;
+  29   3            
+  30   3          /*
+  31   3              LEDNum++;   //LEDNum??
+  32   3            if(LEDNum>=8) //??LEDNum????
+  33   3              LEDNum=0;
+  34   3            P2=~(0x01<<LEDNum); //LED??LEDNum???
+  35   3            */  
+  36   3          }
+  37   2          if(P3_0==0)     //??K2????
+  38   2          {
+  39   3            Delay(20);
+  40   3            while(P3_0==0);
+  41   3            Delay(20);
+  42   3            KeyNum=18;
+  43   3            
+  44   3          /*
+  45   3              if(LEDNum==0) //LEDNum??0???7
+  46   3              LEDNum=7;
+  47   3            else      //LEDNum???0,??
+  48   3              LEDNum--;
+  49   3            P2=~(0x01<<LEDNum); //LED??LEDNum???
+  50   3            */  
+  51   3          }
+  52   2          if(P3_2==0)     //??K1????
+  53   2          {
+  54   3            Delay(20);
+C51 COMPILER V9.54   INDEPENDENTKEY                                                        03/28/2023 21:28:42 PAGE 2   
+
+  55   3            while(P3_2==0);
+  56   3            Delay(20);
+  57   3            KeyNum=19;
+  58   3          }
+  59   2          if(P3_3==0)     //??K1????
+  60   2          {
+  61   3            Delay(20);
+  62   3            while(P3_3==0);
+  63   3            Delay(20);
+  64   3            KeyNum=20;
+  65   3          }
+  66   2        }
+  67   1        return KeyNum;
+  68   1      }
+*** WARNING C294 IN LINE 67 OF IndependentKey.c: unreachable code
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     97    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

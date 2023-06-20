@@ -1,0 +1,5 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\other f.obj" 
+TO ".\Objects\function_version" 
+PRINT(".\Listings\function_version.m51")

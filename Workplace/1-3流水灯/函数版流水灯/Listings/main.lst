@@ -1,0 +1,76 @@
+C51 COMPILER V9.54   MAIN                                                                  03/14/2023 01:45:50 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Program Files (x86)\keil51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PR
+                    -INT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include <INTRINS.H>
+   3          void Delayxms(unsigned int xms)
+   4          {
+   5   1        unsigned char i,j;
+   6   1        while(xms){
+   7   2      
+   8   2        i=4;
+   9   2        j=205;
+  10   2        
+  11   2        do{
+  12   3          
+  13   3            while(--j);
+  14   3          }while(--i);
+  15   2        xms--;
+  16   2      }
+  17   1      } 
+  18          
+  19            void main()
+  20              {
+  21   1        while(1){
+  22   2          /*P2=0xF0;
+  23   2          Delayxms(600);
+  24   2          P2=0x01;
+  25   2          Delayxms(500);
+  26   2          P2=0x02;
+  27   2          Delayxms(400);*/
+  28   2          P2=0xFF;//1111 1111
+  29   2          P2=0xFE;//1111 1110
+  30   2          Delayxms(300);
+  31   2          P2=0xFD;//1111 1101
+  32   2          Delayxms(200);
+  33   2          P2=0xFC;//1111 1100
+  34   2          Delayxms(500);
+  35   2          P2=0xFB;//1111 1011
+  36   2          Delayxms(500);
+  37   2          P2=0xFA;//1111 1010
+  38   2          Delayxms(600);
+  39   2          P2=0xF9;//1111 1001
+  40   2          Delayxms(300);
+  41   2          P2=0xF8;
+  42   2          Delayxms(400);
+  43   2          P2=0xF7;//1111 0111//顺序二进制进位闪烁
+  44   2          Delayxms(400);//第1 ，2 ，3， 4灯轮流亮
+  45   2          //P2=0xF8;
+  46   2          //Delayxms();//1,2,3和123
+  47   2        }
+  48   1        }
+  49          
+  50                
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    105    ----
+C51 COMPILER V9.54   MAIN                                                                  03/14/2023 01:45:50 PAGE 2   
+
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
